@@ -9,7 +9,7 @@ import { membreteA4 } from "@/lib/documentos/membrete";
  * NO fiscal, NO toca SIFEN, NO descuenta stock.
  */
 
-const NEGOCIO_FALLBACK = "Ferrecolor";
+const NEGOCIO_FALLBACK = "IGLESIA ADVENTISTA DE LA PROMESA";
 
 function resolveNegocio(nombreEmpresa?: string | null): string {
   const env = (process.env.NEURA_CLIENT_NAME ?? "").trim();

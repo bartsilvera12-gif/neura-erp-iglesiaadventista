@@ -8,7 +8,7 @@ import { API_ERRORS } from "@/lib/api/errors";
  *
  * Marca un presupuesto aprobado como 'convertido' apuntando a la venta que
  * lo cobró. Usa la columna existente `convertido_pedido_id` para guardar el
- * `venta_id` (semántica bendecida para Ferrecolor: convertido a venta, no a
+ * `venta_id` (semántica bendecida para IGLESIA ADVENTISTA DE LA PROMESA: convertido a venta, no a
  * pedido).
  *
  * Body: { venta_id: string }

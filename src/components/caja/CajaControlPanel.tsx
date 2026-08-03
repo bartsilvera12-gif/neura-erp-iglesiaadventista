@@ -637,7 +637,7 @@ function ModalAbrir({
           </div>
         </div>
 
-        {/* Toggle Contar/Monto oculto para Ferrecolor: solo monto directo. */}
+        {/* Toggle Contar/Monto oculto para IGLESIA ADVENTISTA DE LA PROMESA: solo monto directo. */}
         {false && <ModoArqueoToggle modo={modo} onChange={setModo} />}
 
         {modo === "arqueo" ? (
@@ -805,7 +805,7 @@ function ModalCerrar({
           </div>
         </div>
 
-        {/* Toggle Contar/Monto oculto para Ferrecolor: solo monto directo. */}
+        {/* Toggle Contar/Monto oculto para IGLESIA ADVENTISTA DE LA PROMESA: solo monto directo. */}
         {false && <ModoArqueoToggle modo={modo} onChange={setModo} />}
 
         {modo === "arqueo" ? (

@@ -110,7 +110,7 @@ const MENU_STRUCTURE: MenuItem[] = [
   // (ver/editar/cancelar). El cobro se hace desde la Caja (/ventas), que
   // muestra el listado "Pedidos por cobrar" embebido. Slug 'ventas' para
   // heredar acceso del modulo. La ruta vieja /consulta redirige a /pedidos.
-  // Pedidos oculto para Ferrecolor: flujo pensado para salon/restaurante,
+  // Pedidos oculto para IGLESIA ADVENTISTA DE LA PROMESA: flujo pensado para salon/restaurante,
   // no aplica en venta mostrador. La ruta /pedidos sigue existiendo por URL.
   // { key: "pedidos", slug: "ventas", label: "Pedidos", href: "/pedidos", icon: Receipt },
   // Presupuestos: cotizaciones al cliente con PDF (logo + membrete Ferreteria
@@ -128,7 +128,7 @@ const MENU_STRUCTURE: MenuItem[] = [
     { label: "Productos", href: "/inventario" },
     { label: "Movimientos", href: "/inventario/movimientos" },
     { label: "Categorías", href: "/inventario/categorias" },
-    // Depósitos / Ubicaciones oculto para Ferrecolor (no aplica).
+    // Depósitos / Ubicaciones oculto para IGLESIA ADVENTISTA DE LA PROMESA (no aplica).
     // { label: "Depósitos / Ubicaciones", href: "/inventario/ubicaciones" },
   ]},
   // Clientes: reactivado para que el modulo Consulta pueda asociar pedidos.
@@ -157,7 +157,7 @@ const MENU_STRUCTURE: MenuItem[] = [
   { key: "reportes", slug: "reportes", label: "Reportes", href: "/reportes", icon: BarChart3 },
   // Pagos oculto en instancia En lo de Mari (no usa este módulo).
   // Comisiones y Notas de credito ocultos por ahora:
-  { key: "comisiones", slug: "comisiones", label: "Comisiones", href: "/comisiones", icon: Percent },
+  // Comisiones removido (era logica de ferreteria).
   // {
   //   key: "notas_credito", slug: "notas_credito", label: "Notas de crédito",
   //   href: "/notas-credito", icon: ScrollText,
@@ -173,7 +173,7 @@ const MENU_STRUCTURE: MenuItem[] = [
     href: "/configuracion",
     icon: Settings,
     children: [
-      // Facturación oculta: facturación electrónica desactivada para Ferrecolor.
+      // Facturación oculta: facturación electrónica desactivada para IGLESIA ADVENTISTA DE LA PROMESA.
       // { label: "Facturación", href: "/configuracion/facturacion" },
       { label: "Equipos y supervisión", href: "/configuracion/omnicanal-equipos" },
     ],
@@ -206,7 +206,7 @@ const MENU_STRUCTURE: MenuItem[] = [
  */
 const MENU_FAMILIES: { id: string; titulo: string; keys: string[] }[] = [
   { id: "inicio", titulo: "Inicio", keys: ["dashboard"] },
-  { id: "comercial", titulo: "Comercial", keys: ["clientes", "crm", "gestion-clientes", "ventas", "presupuestos", "comisiones", "planes"] },
+  { id: "comercial", titulo: "Comercial", keys: ["clientes", "crm", "gestion-clientes", "ventas", "presupuestos", "planes"] },
   { id: "finanzas", titulo: "Finanzas", keys: ["pagos", "gastos", "otros_ingresos", "entidades_bancarias", "notas_credito", "reportes"] },
   { id: "operaciones", titulo: "Operaciones", keys: ["inventario", "compras", "recetas", "proyectos"] },
   { id: "omnicanal", titulo: "Omnicanal", keys: ["conversaciones", "conversaciones-finalizadas", "historial-omnicanal", "monitoreo", "campanas"] },

@@ -77,7 +77,7 @@ export default function ConfiguracionPage() {
           </p>
         </div>
         <ul className="m-0 grid list-none gap-4 p-0 sm:grid-cols-2 xl:grid-cols-3">
-          {/* Facturación oculta: facturación electrónica desactivada para Ferrecolor.
+          {/* Facturación oculta: facturación electrónica desactivada para IGLESIA ADVENTISTA DE LA PROMESA.
           <li>
             <SettingsModuleCard
               title="Facturación"

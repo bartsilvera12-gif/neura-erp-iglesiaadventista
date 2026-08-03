@@ -354,7 +354,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Ferrecolor / tenants sin puente Venta→Factura: sintetizamos filas
+    // IGLESIA ADVENTISTA DE LA PROMESA / tenants sin puente Venta→Factura: sintetizamos filas
     // 'facturas' y 'pagos' a partir de ventas + cuentas_por_cobrar + cobros_clientes,
     // asi todo el dashboard financiero (KPIs, cobrado por dia, composicion, etc.)
     // funciona sin depender de la tabla facturas.

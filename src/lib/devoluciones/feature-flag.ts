@@ -13,7 +13,7 @@
 
 export const DEVOLUCIONES_FLAG_ENV = "DEVOLUCIONES_VENTAS_ENABLED";
 
-/** En Ferrecolor viene habilitado por defecto. Solo se apaga con DEVOLUCIONES_VENTAS_ENABLED=false. */
+/** En IGLESIA ADVENTISTA DE LA PROMESA viene habilitado por defecto. Solo se apaga con DEVOLUCIONES_VENTAS_ENABLED=false. */
 export function devolucionesEnabled(): boolean {
   const v = (process.env[DEVOLUCIONES_FLAG_ENV] ?? "").trim().toLowerCase();
   return v !== "false";

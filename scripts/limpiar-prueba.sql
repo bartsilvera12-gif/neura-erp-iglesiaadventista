@@ -4,9 +4,9 @@
 --   * devoluciones_venta ligadas a esas ventas
 -- No toca ventas mixtas que ademas incluyan otros productos.
 --
--- Corre en Supabase SQL editor, schema del tenant Ferrecolor.
+-- Corre en Supabase SQL editor, schema del tenant IGLESIA ADVENTISTA DE LA PROMESA.
 
-SET search_path TO ferrecolor, public;
+SET search_path TO iglesiaadventista, public;
 
 -- ══════════════════════════════════════════════════════════════════
 -- PREVIEW (ejecuta este bloque primero, verifica los resultados)

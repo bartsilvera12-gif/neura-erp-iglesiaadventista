@@ -372,7 +372,7 @@ export default function VentasPage() {
                           >
                             Imprimir
                           </a>
-                          {/* Boton Factura oculto: facturacion electronica desactivada para Ferrecolor */}
+                          {/* Boton Factura oculto: facturacion electronica desactivada para IGLESIA ADVENTISTA DE LA PROMESA */}
                           {v.genera_nota_remision && (
                             <a
                               href={`/api/ventas/${v.id}/ticket?tipo=remision`}

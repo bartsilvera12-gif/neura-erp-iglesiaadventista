@@ -116,8 +116,8 @@ export default function Header() {
               style={{ boxShadow: "0 0 0 3px rgba(79, 174, 178, 0.25)" }}
             >
               <Image
-                src="/brand/ferrecolor-logo.png"
-                alt="Ferrecolor"
+                src="/brand/iglesiaadventista-logo.png"
+                alt="IGLESIA ADVENTISTA DE LA PROMESA"
                 width={120}
                 height={120}
                 sizes="36px"

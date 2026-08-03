@@ -1,7 +1,7 @@
 import type { EstadoUsuario, Usuario } from "./types";
 
 // ─── Datos de ejemplo ─────────────────────────────────────────────────────────
-// Vacío: los usuarios reales de Ferrecolor viven en ferrecolor.usuarios (DB).
+// Vacío: los usuarios reales de IGLESIA ADVENTISTA DE LA PROMESA viven en iglesiaadventista.usuarios (DB).
 // Este mock legacy quedó desconectado del backend real; devolverlo vacío evita
 // que aparezcan "usuarios de demo" (JUAN PÉREZ, MARIA LOPEZ, etc.) en el
 // selector "Viendo como" del dashboard.

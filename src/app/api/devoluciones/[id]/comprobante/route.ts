@@ -1,5 +1,5 @@
 /**
- * Comprobante A4 landscape de la devolucion, mismo look que el comprobante de venta de Ferrecolor.
+ * Comprobante A4 landscape de la devolucion, mismo look que el comprobante de venta de IGLESIA ADVENTISTA DE LA PROMESA.
  * GET /api/devoluciones/[id]/comprobante?auto=1
  */
 import { NextRequest, NextResponse } from "next/server";
@@ -167,7 +167,7 @@ export async function GET(request: NextRequest, ctxParams: { params: Promise<{ i
   <div class="hoja">
     <div class="header-top">
       <div class="brand">
-        <img src="/brand/ferrecolor-logo.png" alt="Ferrecolor" class="logo" />
+        <img src="/brand/iglesiaadventista-logo.png" alt="IGLESIA ADVENTISTA DE LA PROMESA" class="logo" />
         <div class="empresa-datos">
           <div class="razon">GRUPO FERRE E.A.S.</div>
           <div>R.U.C.: 80173997-7</div>

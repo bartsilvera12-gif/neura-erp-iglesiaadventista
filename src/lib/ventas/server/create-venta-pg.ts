@@ -793,14 +793,7 @@ export async function createVentaTransaccionalPg(
         (s, m) => s + (Number((m as { cantidad: number }).cantidad) || 0) * (Number((m as { costo_unitario: number }).costo_unitario) || 0),
         0
       );
-      const gananciaVenta = calc.total - costoVenta;
-      const vendedor = (params.usuarioNombre?.trim() as string) || "";
-      if (vendedor && gananciaVenta > 0) {
-        const { evaluarCruceTramoComision } = await import("@/lib/notificaciones/comisiones");
-        const { fetchDataSchemaForEmpresaId } = await import("@/lib/supabase/empresa-data-schema");
-        const schema = await fetchDataSchemaForEmpresaId(params.empresaId);
-        void evaluarCruceTramoComision(schema, params.empresaId, vendedor, gananciaVenta).catch(() => {});
-      }
+      void costoVenta;
     } catch { /* silencioso */ }
 
     return { ventaId, numeroControl, fechaIso, notaRemisionNumero, cuentaPorCobrarId };

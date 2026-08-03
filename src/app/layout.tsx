@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Ferrecolor",
-  description: "Sistema de gestión Zentra — Ferrecolor",
+  title: "IGLESIA ADVENTISTA DE LA PROMESA",
+  description: "Sistema de gestión Zentra — IGLESIA ADVENTISTA DE LA PROMESA",
 };
 
 export const viewport: Viewport = {

@@ -11,14 +11,14 @@
  */
 
 export const EMPRESA_DOC = {
-  nombre: "Ferrecolor",
+  nombre: "IGLESIA ADVENTISTA DE LA PROMESA",
   actividad: [
     "Comercio al por menor de artículos de ferretería, materiales de construcción y herramientas",
   ],
   telefono: "",
   direccion: ["Paraguay"],
   /** Logo del cliente (alta calidad, sin fondo). Servido desde /public. */
-  logoUrl: "/brand/ferrecolor-logo.png",
+  logoUrl: "/brand/iglesiaadventista-logo.png",
 };
 
 function esc(v: unknown): string {
