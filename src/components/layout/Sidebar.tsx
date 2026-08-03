@@ -86,97 +86,10 @@ function adminEmpresasMatchesQuery(queryRaw: string): boolean {
 }
 
 const MENU_STRUCTURE: MenuItem[] = [
+  // IGLESIA ADVENTISTA DE LA PROMESA: solo Dashboard y Gastos.
+  // El resto queda oculto (codigo conservado por si se reactiva luego).
   { key: "dashboard", slug: "dashboard", label: "Dashboard", href: "/", icon: LayoutDashboard },
-  // Modulo omnicanal/WhatsApp ocultado por ahora (codigo conservado por si se reactiva):
-  // - Conversaciones, Historial omnicanal, Finalizadas, Monitoreo
-  // {
-  //   key: "conversaciones", slug: "conversaciones", label: "Conversaciones",
-  //   href: "/dashboard/conversaciones", icon: MessageCircle,
-  // },
-  // {
-  //   key: "historial-omnicanal", slug: "historial-omnicanal", label: "Historial omnicanal",
-  //   href: "/dashboard/historial-omnicanal", icon: History,
-  // },
-  // {
-  //   key: "conversaciones-finalizadas", slug: "conversaciones-finalizadas", label: "Finalizadas",
-  //   href: "/dashboard/conversaciones-finalizadas", icon: ListChecks,
-  // },
-  // {
-  //   key: "monitoreo", slug: "monitoreo", label: "Monitoreo",
-  //   href: "/dashboard/monitoreo", icon: Activity,
-  // },
-  { key: "ventas", slug: "ventas", label: "Caja", href: "/ventas", icon: ShoppingCart },
-  // Pedidos: vendedor arma pedidos en el salon; este listado es gestion
-  // (ver/editar/cancelar). El cobro se hace desde la Caja (/ventas), que
-  // muestra el listado "Pedidos por cobrar" embebido. Slug 'ventas' para
-  // heredar acceso del modulo. La ruta vieja /consulta redirige a /pedidos.
-  // Pedidos oculto para IGLESIA ADVENTISTA DE LA PROMESA: flujo pensado para salon/restaurante,
-  // no aplica en venta mostrador. La ruta /pedidos sigue existiendo por URL.
-  // { key: "pedidos", slug: "ventas", label: "Pedidos", href: "/pedidos", icon: Receipt },
-  // Presupuestos: cotizaciones al cliente con PDF (logo + membrete Ferreteria
-  // Republica). Reactivado a pedido.
-  { key: "presupuestos", slug: "presupuestos", label: "Presupuestos", href: "/presupuestos", icon: FileText },
-  // Items gastro/legacy ocultados para ferreteria (codigo conservado por si se reactivan):
-  // - Pedidos (proyectos): kanban de cocina, no aplica.
-  // - Recetas: combos/insumos, no aplica.
-  // {
-  //   key: "proyectos", slug: "proyectos", label: "Pedidos",
-  //   href: "/dashboard/proyectos", icon: Utensils,
-  // },
-  // { key: "recetas", slug: "recetas", label: "Recetas", href: "/dashboard/recetas", icon: ChefHat },
-  { key: "inventario", slug: "inventario", label: "Inventario", href: "/inventario", icon: Package, children: [
-    { label: "Productos", href: "/inventario" },
-    { label: "Movimientos", href: "/inventario/movimientos" },
-    { label: "Categorías", href: "/inventario/categorias" },
-    // Depósitos / Ubicaciones oculto para IGLESIA ADVENTISTA DE LA PROMESA (no aplica).
-    // { label: "Depósitos / Ubicaciones", href: "/inventario/ubicaciones" },
-  ]},
-  // Clientes: reactivado para que el modulo Consulta pueda asociar pedidos.
-  { key: "clientes", slug: "clientes", label: "Clientes", href: "/clientes", icon: Users },
-  {
-    key: "compras",
-    slug: "compras",
-    label: "Compras",
-    href: "/compras",
-    icon: Package,
-    children: [
-      { label: "Órdenes", href: "/compras" },
-      { label: "Proveedores", href: "/proveedores" },
-    ],
-  },
-  { key: "pagos", slug: "pagos", label: "Pagos", href: "/pagos", icon: Banknote },
   { key: "gastos", slug: "gastos", label: "Gastos", href: "/gastos", icon: Receipt },
-  // Otros ingresos: ingresos manuales que NO son ventas de productos (cartones,
-  // servicios, alquileres). Suman a caja, no tocan inventario. Slug 'ventas'
-  // para heredar acceso (mismo permiso que Caja).
-  { key: "otros_ingresos", slug: "ventas", label: "Otros ingresos", href: "/otros-ingresos", icon: Wallet },
-  // Entidades bancarias: cajas, bancos, tarjetas, billeteras usadas para
-  // conciliacion de transferencias y tarjetas en cobros/ventas. Era submenu
-  // de Configuracion; ahora modulo standalone para mejor accesibilidad.
-  { key: "entidades_bancarias", slug: "ventas", label: "Entidades bancarias", href: "/configuracion/entidades-bancarias", icon: Building2 },
-  { key: "reportes", slug: "reportes", label: "Reportes", href: "/reportes", icon: BarChart3 },
-  // Pagos oculto en instancia En lo de Mari (no usa este módulo).
-  // Comisiones y Notas de credito ocultos por ahora:
-  // Comisiones removido (era logica de ferreteria).
-  // {
-  //   key: "notas_credito", slug: "notas_credito", label: "Notas de crédito",
-  //   href: "/notas-credito", icon: ScrollText,
-  // },
-  { key: "usuarios", slug: "usuarios", label: "Usuarios", href: "/usuarios", icon: UserCog },
-  // Configuracion: reactivado a pedido. Da acceso al panel de facturacion
-  // (modo / autoimpresor) y demas subpaginas de configuracion.
-  {
-    key: "configuracion",
-    slug: "configuracion",
-    label: "Configuración",
-    href: "/configuracion",
-    icon: Settings,
-    children: [
-      // Facturación oculta: facturación electrónica desactivada para IGLESIA ADVENTISTA DE LA PROMESA.
-      // { label: "Facturación", href: "/configuracion/facturacion" },
-      { label: "Equipos y supervisión", href: "/configuracion/omnicanal-equipos" },
-    ],
-  },
   // Items ocultos en ferreteria (no aplican / duplicados):
   // - Planes: suscripciones, modelo SaaS.
   // - Gestion Clientes: duplicado de Clientes con vista distinta.
