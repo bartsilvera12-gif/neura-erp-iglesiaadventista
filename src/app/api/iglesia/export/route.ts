@@ -132,12 +132,12 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // PDF — A4 horizontal (mas ancho para columnas)
+    // PDF — A4 vertical (portrait)
     const pdf = await PDFDocument.create();
     const font = await pdf.embedFont(StandardFonts.Helvetica);
     const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-    const PAGE_W = 841.89;
-    const PAGE_H = 595.28;
+    const PAGE_W = 595.28;
+    const PAGE_H = 841.89;
     let page = pdf.addPage([PAGE_W, PAGE_H]);
     const margin = 36;
     let y = page.getHeight() - margin;
@@ -158,30 +158,33 @@ export async function GET(request: NextRequest) {
     drawText(`Período: ${rangoTxt}`, margin, y, 9); y -= 10;
     drawText(`Generado: ${new Date().toISOString().slice(0, 19).replace("T", " ")}`, margin, y, 8); y -= 16;
 
-    // Columnas (A4 horizontal: 842 - 2*36 = 770pt utiles)
+    // Columnas (A4 vertical: 595 - 2*36 = 523pt utiles)
     const cols = tipo === "ingresos"
       ? [
-          { label: "Fecha",     x: margin,     w: 60 },
-          { label: "Sector",    x: margin+62,  w: 95 },
-          { label: "Filial",    x: margin+159, w: 110 },
-          { label: "Categoría", x: margin+271, w: 120 },
-          { label: "Aportante", x: margin+393, w: 130 },
-          { label: "F. pago",   x: margin+525, w: 70 },
-          { label: "Descrip.",  x: margin+597, w: 100 },
-          { label: "Monto",     x: margin+699, w: 70, align: "right" as const },
+          { label: "Fecha",     x: margin,     w: 48 },
+          { label: "Sector",    x: margin+50,  w: 60 },
+          { label: "Filial",    x: margin+112, w: 75 },
+          { label: "Categoría", x: margin+189, w: 78 },
+          { label: "Aportante", x: margin+269, w: 82 },
+          { label: "F. pago",   x: margin+353, w: 45 },
+          { label: "Descrip.",  x: margin+400, w: 60 },
+          { label: "Monto",     x: margin+462, w: 61, align: "right" as const },
         ]
       : [
-          { label: "Fecha",     x: margin,     w: 60 },
-          { label: "Sector",    x: margin+62,  w: 110 },
-          { label: "Filial",    x: margin+174, w: 130 },
-          { label: "Categoría", x: margin+306, w: 150 },
-          { label: "F. pago",   x: margin+458, w: 80 },
-          { label: "Descrip.",  x: margin+540, w: 155 },
-          { label: "Monto",     x: margin+697, w: 70, align: "right" as const },
+          { label: "Fecha",     x: margin,     w: 55 },
+          { label: "Sector",    x: margin+57,  w: 70 },
+          { label: "Filial",    x: margin+129, w: 90 },
+          { label: "Categoría", x: margin+221, w: 100 },
+          { label: "F. pago",   x: margin+323, w: 55 },
+          { label: "Descrip.",  x: margin+380, w: 85 },
+          { label: "Monto",     x: margin+468, w: 55, align: "right" as const },
         ];
+    const rowFontSize = tipo === "ingresos" ? 6.5 : 8;
+    const headerFontSize = tipo === "ingresos" ? 7.5 : 9;
+    const truncMax = tipo === "ingresos" ? 16 : 24;
 
     const drawHeader = () => {
-      for (const c of cols) drawText(c.label, c.x, y, 9, bold);
+      for (const c of cols) drawText(c.label, c.x, y, headerFontSize, bold);
       y -= 4;
       page.drawLine({ start: { x: margin, y }, end: { x: page.getWidth() - margin, y }, thickness: 0.5, color: rgb(0.5,0.5,0.5) });
       y -= 10;
@@ -219,16 +222,16 @@ export async function GET(request: NextRequest) {
       for (let i = 0; i < cols.length; i++) {
         const c = cols[i]!;
         const txt = String(cells[i] ?? "");
-        const clipped = txt.length > 24 ? txt.slice(0, 23) + "..." : txt;
+        const clipped = txt.length > truncMax ? txt.slice(0, truncMax - 1) + "..." : txt;
         if (c.align === "right") {
-          const w = font.widthOfTextAtSize(clipped, 8);
-          drawText(clipped, c.x + c.w - w, y, 8);
+          const w = font.widthOfTextAtSize(clipped, rowFontSize);
+          drawText(clipped, c.x + c.w - w, y, rowFontSize);
         } else {
-          drawText(clipped, c.x, y, 8);
+          drawText(clipped, c.x, y, rowFontSize);
         }
       }
       total += Number(r.monto || 0);
-      y -= 12;
+      y -= tipo === "ingresos" ? 10 : 12;
     }
 
     // Totales
