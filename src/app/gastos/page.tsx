@@ -6,6 +6,7 @@ import { fetchWithSupabaseSession } from "@/lib/api/fetch-with-supabase-session"
 import { FancySelect } from "@/components/ui/FancySelect";
 import { buildFilialOptions, type FilialLite } from "@/lib/iglesia/build-filial-options";
 import { labelFormaPago } from "@/lib/iglesia/formas-pago";
+import { ImportarBotones } from "@/components/iglesia/ImportarBotones";
 
 type Categoria = { id: string; nombre: string; aplica_a: string; orden: number };
 type Gasto = {
@@ -114,6 +115,7 @@ export default function GastosPage() {
           <p className="mt-0.5 text-xs text-slate-500">Gastos por filial (incluye JUNTA)</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <ImportarBotones tipo="gastos" onImportado={cargar} />
           <button onClick={() => download("pdf")}
             className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm hover:border-[#4FAEB2]/60 hover:text-[#3F8E91]">
             📄 PDF
