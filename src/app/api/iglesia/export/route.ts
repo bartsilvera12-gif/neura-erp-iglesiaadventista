@@ -4,12 +4,14 @@ import { errorResponse } from "@/lib/api/response";
 import { API_ERRORS } from "@/lib/api/errors";
 import { PDFDocument, StandardFonts, rgb, type PDFPage, type PDFFont } from "pdf-lib";
 import * as XLSX from "xlsx";
+import { labelFormaPago } from "@/lib/iglesia/formas-pago";
 
 type Movimiento = {
   id: string;
   fecha: string;
   monto: number;
   descripcion: string | null;
+  forma_pago: string | null;
   filial: { id: string; nombre: string; es_junta: boolean; aplica_15_porciento: boolean;
             sector?: { id: string; nombre: string } | null } | null;
   categoria: { id: string; nombre: string } | null;
@@ -56,7 +58,7 @@ export async function GET(request: NextRequest) {
     let q = ctx.supabase
       .from(tabla)
       .select(`
-        id, fecha, monto, descripcion,
+        id, fecha, monto, descripcion, forma_pago,
         filial:filiales!inner(id, nombre, es_junta, aplica_15_porciento, sector:sectores(id, nombre)),
         categoria:${catTable}(id, nombre)
       `)
@@ -80,19 +82,20 @@ export async function GET(request: NextRequest) {
 
     if (formato === "xlsx") {
       const aoa: (string | number)[][] = [
-        ["Fecha", "Sector", "Filial", "Categoría", "Descripción", "Monto (Gs)"],
+        ["Fecha", "Sector", "Filial", "Categoría", "Forma de pago", "Descripción", "Monto (Gs)"],
         ...rows.map((r) => [
           r.fecha,
           r.filial?.sector?.nombre ?? (r.filial?.es_junta ? "JUNTA" : ""),
           r.filial?.nombre ?? "",
           r.categoria?.nombre ?? "",
+          labelFormaPago(r.forma_pago),
           r.descripcion ?? "",
           Number(r.monto),
         ]),
       ];
       const total = rows.reduce((s, r) => s + Number(r.monto || 0), 0);
       aoa.push([]);
-      aoa.push(["", "", "", "", "TOTAL", total]);
+      aoa.push(["", "", "", "", "", "TOTAL", total]);
       const ws = XLSX.utils.aoa_to_sheet(aoa);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, tipo);
@@ -131,11 +134,12 @@ export async function GET(request: NextRequest) {
 
     // Columnas
     const cols = [
-      { label: "Fecha",     x: margin,     w: 60 },
-      { label: "Sector",    x: margin+62,  w: 80 },
-      { label: "Filial",    x: margin+144, w: 100 },
-      { label: "Categoría", x: margin+246, w: 120 },
-      { label: "Descrip.",  x: margin+368, w: 100 },
+      { label: "Fecha",     x: margin,     w: 55 },
+      { label: "Sector",    x: margin+57,  w: 70 },
+      { label: "Filial",    x: margin+129, w: 90 },
+      { label: "Categoría", x: margin+221, w: 100 },
+      { label: "F. pago",   x: margin+323, w: 55 },
+      { label: "Descrip.",  x: margin+380, w: 85 },
       { label: "Monto",     x: margin+468, w: 60, align: "right" as const },
     ];
 
@@ -160,6 +164,7 @@ export async function GET(request: NextRequest) {
         r.filial?.sector?.nombre ?? (r.filial?.es_junta ? "JUNTA" : ""),
         r.filial?.nombre ?? "",
         r.categoria?.nombre ?? "",
+        labelFormaPago(r.forma_pago),
         r.descripcion ?? "",
         montoStr,
       ];
@@ -182,10 +187,10 @@ export async function GET(request: NextRequest) {
     y -= 6;
     page.drawLine({ start: { x: margin, y }, end: { x: page.getWidth() - margin, y }, thickness: 0.5, color: rgb(0.5,0.5,0.5) });
     y -= 12;
-    drawText("TOTAL:", cols[4]!.x, y, 10, bold);
+    drawText("TOTAL:", cols[5]!.x, y, 10, bold);
     const totalStr = fmtGs(total);
     const wTot = bold.widthOfTextAtSize(totalStr, 10);
-    drawText(totalStr, cols[5]!.x + cols[5]!.w - wTot, y, 10, bold);
+    drawText(totalStr, cols[6]!.x + cols[6]!.w - wTot, y, 10, bold);
 
     const pdfBytes = await pdf.save();
     return new NextResponse(new Uint8Array(pdfBytes), {

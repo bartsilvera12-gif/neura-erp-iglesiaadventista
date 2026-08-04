@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { fetchWithSupabaseSession } from "@/lib/api/fetch-with-supabase-session";
 import { FancySelect } from "@/components/ui/FancySelect";
 import { buildFilialOptions, type FilialLite } from "@/lib/iglesia/build-filial-options";
+import { labelFormaPago } from "@/lib/iglesia/formas-pago";
 
 type Categoria = { id: string; nombre: string; orden: number };
 type Ingreso = {
@@ -12,6 +13,7 @@ type Ingreso = {
   fecha: string;
   monto: number;
   descripcion: string | null;
+  forma_pago: string | null;
   filial: { id: string; nombre: string; es_junta: boolean; aplica_15_porciento: boolean;
             sector?: { id: string; nombre: string } | null } | null;
   categoria: { id: string; nombre: string } | null;
@@ -176,6 +178,7 @@ export default function IngresosPage() {
                   <th className="px-4 py-2.5 text-left">Sector</th>
                   <th className="px-4 py-2.5 text-left">Filial</th>
                   <th className="px-4 py-2.5 text-left">Categoría</th>
+                  <th className="px-4 py-2.5 text-left">Forma pago</th>
                   <th className="px-4 py-2.5 text-left">Descripción</th>
                   <th className="px-4 py-2.5 text-right">Monto</th>
                   <th className="px-4 py-2.5"></th>
@@ -188,10 +191,16 @@ export default function IngresosPage() {
                     <td className="px-4 py-2.5 text-slate-600">{r.filial?.sector?.nombre ?? (r.filial?.es_junta ? "JUNTA" : "")}</td>
                     <td className="px-4 py-2.5 font-medium">{r.filial?.nombre ?? "—"}</td>
                     <td className="px-4 py-2.5 text-slate-600">{r.categoria?.nombre ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-slate-500">{labelFormaPago(r.forma_pago) || "—"}</td>
                     <td className="px-4 py-2.5 text-slate-500">{r.descripcion ?? "—"}</td>
                     <td className="px-4 py-2.5 text-right font-semibold text-emerald-700 whitespace-nowrap">{fmtGs(Number(r.monto))}</td>
                     <td className="px-4 py-2.5 text-right whitespace-nowrap">
                       <div className="inline-flex gap-1">
+                        <Link href={`/ingresos/nuevo?duplicar=${r.id}`}
+                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 shadow-sm hover:border-[#4FAEB2]/60 hover:text-[#3F8E91]"
+                          title="Duplicar">
+                          📋 Duplicar
+                        </Link>
                         <Link href={`/ingresos/${r.id}/editar`}
                           className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 shadow-sm hover:border-[#4FAEB2]/60 hover:text-[#3F8E91]"
                           title="Editar">
@@ -209,7 +218,7 @@ export default function IngresosPage() {
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-slate-300 bg-slate-50 font-semibold">
-                  <td colSpan={5} className="px-4 py-2.5 text-right">TOTAL</td>
+                  <td colSpan={6} className="px-4 py-2.5 text-right">TOTAL</td>
                   <td className="px-4 py-2.5 text-right text-emerald-800">{fmtGs(total)}</td>
                   <td></td>
                 </tr>

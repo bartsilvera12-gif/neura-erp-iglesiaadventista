@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     let q = ctx.supabase
       .from("gastos")
       .select(`
-        id, fecha, monto, descripcion, created_at,
+        id, fecha, monto, descripcion, forma_pago, created_at,
         filial:filiales!inner(id, nombre, es_junta, aplica_15_porciento, sector:sectores(id, nombre)),
         categoria:categorias_gasto(id, nombre)
       `)
@@ -59,6 +59,8 @@ export async function POST(request: NextRequest) {
       ? body.fecha.slice(0, 10)
       : null;
     const descripcion = body.descripcion != null ? String(body.descripcion).trim() : "";
+    const formaPagoIn = typeof body.forma_pago === "string" ? body.forma_pago : "";
+    const forma_pago = ["efectivo","transferencia","deposito","cheque"].includes(formaPagoIn) ? formaPagoIn : null;
 
     if (!filial_id) return NextResponse.json(errorResponse("Elegí una filial."), { status: 400 });
     if (!categoria_gasto_id) return NextResponse.json(errorResponse("Elegí una categoría."), { status: 400 });
@@ -89,6 +91,7 @@ export async function POST(request: NextRequest) {
         recurrente: false,
         fecha,
         descuenta_caja: false,
+        forma_pago,
       })
       .select()
       .single();

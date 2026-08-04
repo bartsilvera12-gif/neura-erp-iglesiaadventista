@@ -6,6 +6,7 @@ import Link from "next/link";
 import { fetchWithSupabaseSession } from "@/lib/api/fetch-with-supabase-session";
 import { FancySelect } from "@/components/ui/FancySelect";
 import { buildFilialOptions, type FilialLite } from "@/lib/iglesia/build-filial-options";
+import { FORMAS_PAGO } from "@/lib/iglesia/formas-pago";
 
 type Categoria = { id: string; nombre: string };
 
@@ -20,6 +21,7 @@ export default function EditarIngresoPage() {
   const [fecha, setFecha] = useState("");
   const [monto, setMonto] = useState("");
   const [descripcion, setDescripcion] = useState("");
+  const [formaPago, setFormaPago] = useState("");
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +44,7 @@ export default function EditarIngresoPage() {
         setFecha(iJ.data.fecha ?? "");
         setMonto(String(iJ.data.monto ?? ""));
         setDescripcion(iJ.data.descripcion ?? "");
+        setFormaPago(iJ.data.forma_pago ?? "");
       }
       setCargando(false);
     })();
@@ -51,6 +54,10 @@ export default function EditarIngresoPage() {
   const categoriaOptions = useMemo(
     () => categorias.map((c) => ({ value: c.id, label: c.nombre })),
     [categorias]
+  );
+  const formaPagoOptions = useMemo(
+    () => [{ value: "", label: "— sin especificar —" }, ...FORMAS_PAGO.map((f) => ({ value: f.value, label: f.label }))],
+    []
   );
 
   async function guardar(e: React.FormEvent) {
@@ -68,6 +75,7 @@ export default function EditarIngresoPage() {
         fecha,
         monto: Number(monto),
         descripcion,
+        forma_pago: formaPago,
       }),
     });
     const j = await res.json();
@@ -108,6 +116,10 @@ export default function EditarIngresoPage() {
             <input required type="number" step="1" min="1" value={monto} onChange={(e) => setMonto(e.target.value)}
               className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-[#4FAEB2] focus:outline-none focus:ring-2 focus:ring-[#4FAEB2]/20" />
           </label>
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-semibold text-slate-700">Forma de pago</label>
+          <FancySelect options={formaPagoOptions} value={formaPago} onChange={setFormaPago} placeholder="— sin especificar —" />
         </div>
         <label className="block text-sm">
           <span className="mb-1 block text-xs font-semibold text-slate-700">Descripción</span>
