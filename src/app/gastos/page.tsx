@@ -3,14 +3,10 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { fetchWithSupabaseSession } from "@/lib/api/fetch-with-supabase-session";
+import { FancySelect } from "@/components/ui/FancySelect";
+import { buildFilialOptions, type FilialLite } from "@/lib/iglesia/build-filial-options";
 
-type Filial = {
-  id: string; nombre: string; es_junta: boolean; aplica_15_porciento: boolean;
-  sector_id: string | null;
-  sectores: { id: string; nombre: string; orden: number } | null;
-};
 type Categoria = { id: string; nombre: string; aplica_a: string; orden: number };
-
 type Gasto = {
   id: string;
   fecha: string;
@@ -26,7 +22,7 @@ function fmtGs(n: number) {
 }
 
 export default function GastosPage() {
-  const [filiales, setFiliales] = useState<Filial[]>([]);
+  const [filiales, setFiliales] = useState<FilialLite[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [gastos, setGastos] = useState<Gasto[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -37,16 +33,28 @@ export default function GastosPage() {
   const [filtroFilial, setFiltroFilial] = useState("");
   const [filtroCategoria, setFiltroCategoria] = useState("");
 
+  const [confirmDel, setConfirmDel] = useState<Gasto | null>(null);
+
   const sectoresUnicos = useMemo(() => {
     const map = new Map<string, string>();
     filiales.forEach((f) => f.sectores && map.set(f.sectores.id, f.sectores.nombre));
     return Array.from(map.entries()).map(([id, nombre]) => ({ id, nombre }));
   }, [filiales]);
 
-  const filialesVisibles = useMemo(() => {
-    if (!filtroSector) return filiales;
-    return filiales.filter((f) => f.sector_id === filtroSector);
+  const filialOptions = useMemo(() => {
+    const scoped = filtroSector ? filiales.filter((f) => f.sector_id === filtroSector) : filiales;
+    return [{ value: "", label: "Todas las filiales" }, ...buildFilialOptions(scoped)];
   }, [filiales, filtroSector]);
+
+  const sectorOptions = useMemo(
+    () => [{ value: "", label: "Todos los sectores" }, ...sectoresUnicos.map((s) => ({ value: s.id, label: s.nombre }))],
+    [sectoresUnicos]
+  );
+
+  const categoriaOptions = useMemo(
+    () => [{ value: "", label: "Todas las categorías" }, ...categorias.map((c) => ({ value: c.id, label: c.nombre }))],
+    [categorias]
+  );
 
   useEffect(() => {
     (async () => {
@@ -76,10 +84,11 @@ export default function GastosPage() {
   }
   useEffect(() => { cargar(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
-  async function eliminar(id: string) {
-    if (!confirm("¿Eliminar este gasto?")) return;
-    const res = await fetchWithSupabaseSession(`/api/iglesia/gastos/${id}`, { method: "DELETE" });
-    if (res.ok) setGastos((prev) => prev.filter((x) => x.id !== id));
+  async function eliminarConfirmado() {
+    if (!confirmDel) return;
+    const res = await fetchWithSupabaseSession(`/api/iglesia/gastos/${confirmDel.id}`, { method: "DELETE" });
+    if (res.ok) setGastos((prev) => prev.filter((x) => x.id !== confirmDel.id));
+    setConfirmDel(null);
   }
 
   function download(formato: "pdf" | "xlsx") {
@@ -96,62 +105,61 @@ export default function GastosPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900">Gastos</h1>
-          <p className="text-xs text-slate-500">Gastos por filial (incluye JUNTA)</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#4FAEB2]">Iglesia · Gastos</p>
+          <h1 className="mt-1 text-lg font-semibold tracking-tight text-slate-900">Gastos</h1>
+          <p className="mt-0.5 text-xs text-slate-500">Gastos por filial (incluye JUNTA)</p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => download("pdf")} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
+        <div className="flex flex-wrap gap-2">
+          <button onClick={() => download("pdf")}
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm hover:border-[#4FAEB2]/60 hover:text-[#3F8E91]">
             📄 PDF
           </button>
-          <button onClick={() => download("xlsx")} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
+          <button onClick={() => download("xlsx")}
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm hover:border-[#4FAEB2]/60 hover:text-[#3F8E91]">
             📊 Excel
           </button>
-          <Link href="/gastos/nuevo" className="rounded-lg bg-[#4FAEB2] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#3F8E91]">
+          <Link href="/gastos/nuevo"
+            className="rounded-xl bg-[#4FAEB2] px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-[#4FAEB2]/25 hover:bg-[#3F8E91] active:scale-95">
             + Nuevo gasto
           </Link>
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm ring-1 ring-[#4FAEB2]/10">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-6">
-          <label className="text-xs">Desde
+          <label className="text-xs font-semibold text-slate-700">
+            <span className="mb-1 block">Desde</span>
             <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)}
-              className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1 text-sm" />
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-[#4FAEB2] focus:outline-none focus:ring-2 focus:ring-[#4FAEB2]/20" />
           </label>
-          <label className="text-xs">Hasta
+          <label className="text-xs font-semibold text-slate-700">
+            <span className="mb-1 block">Hasta</span>
             <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)}
-              className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1 text-sm" />
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-[#4FAEB2] focus:outline-none focus:ring-2 focus:ring-[#4FAEB2]/20" />
           </label>
-          <label className="text-xs">Sector
-            <select value={filtroSector} onChange={(e) => { setFiltroSector(e.target.value); setFiltroFilial(""); }}
-              className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1 text-sm">
-              <option value="">Todos</option>
-              {sectoresUnicos.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-            </select>
+          <label className="text-xs font-semibold text-slate-700">
+            <span className="mb-1 block">Sector</span>
+            <FancySelect size="sm" options={sectorOptions} value={filtroSector}
+              onChange={(v) => { setFiltroSector(v); setFiltroFilial(""); }} placeholder="Todos" />
           </label>
-          <label className="text-xs">Filial
-            <select value={filtroFilial} onChange={(e) => setFiltroFilial(e.target.value)}
-              className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1 text-sm">
-              <option value="">Todas</option>
-              {filialesVisibles.map((f) => <option key={f.id} value={f.id}>{f.nombre}</option>)}
-            </select>
+          <label className="text-xs font-semibold text-slate-700">
+            <span className="mb-1 block">Filial</span>
+            <FancySelect size="sm" options={filialOptions} value={filtroFilial} onChange={setFiltroFilial} placeholder="Todas" />
           </label>
-          <label className="text-xs">Categoría
-            <select value={filtroCategoria} onChange={(e) => setFiltroCategoria(e.target.value)}
-              className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1 text-sm">
-              <option value="">Todas</option>
-              {categorias.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-            </select>
+          <label className="text-xs font-semibold text-slate-700">
+            <span className="mb-1 block">Categoría</span>
+            <FancySelect size="sm" options={categoriaOptions} value={filtroCategoria} onChange={setFiltroCategoria} placeholder="Todas" />
           </label>
-          <button onClick={cargar} className="self-end rounded-md bg-slate-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700">
+          <button onClick={cargar}
+            className="self-end rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-700">
             Aplicar
           </button>
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm ring-1 ring-[#4FAEB2]/10">
         {cargando ? (
           <div className="py-16 text-center text-sm text-slate-400">Cargando…</div>
         ) : gastos.length === 0 ? (
@@ -164,34 +172,45 @@ export default function GastosPage() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-xs uppercase text-slate-600">
                 <tr>
-                  <th className="px-4 py-2 text-left">Fecha</th>
-                  <th className="px-4 py-2 text-left">Sector</th>
-                  <th className="px-4 py-2 text-left">Filial</th>
-                  <th className="px-4 py-2 text-left">Categoría</th>
-                  <th className="px-4 py-2 text-left">Descripción</th>
-                  <th className="px-4 py-2 text-right">Monto</th>
-                  <th className="px-4 py-2"></th>
+                  <th className="px-4 py-2.5 text-left">Fecha</th>
+                  <th className="px-4 py-2.5 text-left">Sector</th>
+                  <th className="px-4 py-2.5 text-left">Filial</th>
+                  <th className="px-4 py-2.5 text-left">Categoría</th>
+                  <th className="px-4 py-2.5 text-left">Descripción</th>
+                  <th className="px-4 py-2.5 text-right">Monto</th>
+                  <th className="px-4 py-2.5"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {gastos.map((r) => (
                   <tr key={r.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-2">{r.fecha}</td>
-                    <td className="px-4 py-2 text-slate-600">{r.filial?.sector?.nombre ?? (r.filial?.es_junta ? "JUNTA" : "")}</td>
-                    <td className="px-4 py-2 font-medium">{r.filial?.nombre ?? "—"}</td>
-                    <td className="px-4 py-2 text-slate-600">{r.categoria?.nombre ?? "—"}</td>
-                    <td className="px-4 py-2 text-slate-500">{r.descripcion ?? "—"}</td>
-                    <td className="px-4 py-2 text-right font-semibold text-rose-700">{fmtGs(Number(r.monto))}</td>
-                    <td className="px-4 py-2 text-right">
-                      <button onClick={() => eliminar(r.id)} className="text-xs text-red-600 hover:underline">Eliminar</button>
+                    <td className="px-4 py-2.5 whitespace-nowrap">{r.fecha}</td>
+                    <td className="px-4 py-2.5 text-slate-600">{r.filial?.sector?.nombre ?? (r.filial?.es_junta ? "JUNTA" : "")}</td>
+                    <td className="px-4 py-2.5 font-medium">{r.filial?.nombre ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-slate-600">{r.categoria?.nombre ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-slate-500">{r.descripcion ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-right font-semibold text-rose-700 whitespace-nowrap">{fmtGs(Number(r.monto))}</td>
+                    <td className="px-4 py-2.5 text-right whitespace-nowrap">
+                      <div className="inline-flex gap-1">
+                        <Link href={`/gastos/${r.id}/editar`}
+                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 shadow-sm hover:border-[#4FAEB2]/60 hover:text-[#3F8E91]"
+                          title="Editar">
+                          ✏️ Editar
+                        </Link>
+                        <button onClick={() => setConfirmDel(r)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-white px-2 py-1 text-xs font-medium text-rose-700 shadow-sm hover:bg-rose-50"
+                          title="Eliminar">
+                          🗑 Eliminar
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-slate-300 bg-slate-50 font-semibold">
-                  <td colSpan={5} className="px-4 py-2 text-right">TOTAL</td>
-                  <td className="px-4 py-2 text-right text-rose-800">{fmtGs(total)}</td>
+                  <td colSpan={5} className="px-4 py-2.5 text-right">TOTAL</td>
+                  <td className="px-4 py-2.5 text-right text-rose-800">{fmtGs(total)}</td>
                   <td></td>
                 </tr>
               </tfoot>
@@ -199,6 +218,28 @@ export default function GastosPage() {
           </div>
         )}
       </div>
+
+      {confirmDel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" onClick={() => setConfirmDel(null)}>
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-[#4FAEB2]/20" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-slate-900">¿Eliminar este gasto?</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              <span className="font-medium">{confirmDel.filial?.nombre}</span> · {confirmDel.categoria?.nombre} · {fmtGs(Number(confirmDel.monto))}
+            </p>
+            <p className="mt-1 text-xs text-slate-400">Esta acción no se puede deshacer.</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button onClick={() => setConfirmDel(null)}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                Cancelar
+              </button>
+              <button onClick={eliminarConfirmado}
+                className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-rose-700 active:scale-95">
+                Sí, eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
