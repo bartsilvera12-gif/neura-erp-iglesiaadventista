@@ -3,6 +3,7 @@ import { getTenantSupabaseFromAuth } from "@/lib/supabase/tenant-api";
 import { errorResponse } from "@/lib/api/response";
 import { API_ERRORS } from "@/lib/api/errors";
 import * as XLSX from "xlsx";
+import { toStdNombre } from "@/lib/iglesia/normalize";
 
 /**
  * GET /api/iglesia/plantilla?tipo=ingresos|gastos
@@ -31,10 +32,10 @@ export async function GET(request: NextRequest) {
       ? ["Fecha (dd-mm-yyyy)", "Filial", "Categoría", "Aportante (opcional)", "Teléfono aportante (opcional)", "Forma de pago (opcional)", "Monto (Gs)", "Descripción (opcional)"]
       : ["Fecha (dd-mm-yyyy)", "Filial", "Categoría", "Forma de pago (opcional)", "Monto (Gs)", "Descripción (opcional)"];
 
-    const filialEjemplo = filQ.data?.find((f) => !f.es_junta)?.nombre ?? "Asunción";
+    const filialEjemplo = toStdNombre(filQ.data?.find((f) => !f.es_junta)?.nombre ?? "ASUNCION");
     const catEjemplo = tipo === "ingresos"
-      ? (catIngQ.data?.[0]?.nombre ?? "Diezmo")
-      : (catGasQ.data?.find((c) => c.aplica_a !== "junta")?.nombre ?? "Agua");
+      ? toStdNombre(catIngQ.data?.[0]?.nombre ?? "DIEZMO")
+      : toStdNombre(catGasQ.data?.find((c) => c.aplica_a !== "junta")?.nombre ?? "AGUA");
 
     const ejemplo = tipo === "ingresos"
       ? ["04-08-2026", filialEjemplo, catEjemplo, "JUAN PEREZ", "0981123456", "efectivo", 50000, "Diezmo del sábado"]
@@ -58,15 +59,15 @@ export async function GET(request: NextRequest) {
       const sec = f.es_junta ? "JUNTA" : ((f.sectores as { nombre: string } | { nombre: string }[] | null)
         ? (Array.isArray(f.sectores) ? f.sectores[0]?.nombre : f.sectores?.nombre) ?? ""
         : "");
-      refAoa.push([sec, f.nombre]);
+      refAoa.push([toStdNombre(sec), toStdNombre(f.nombre)]);
     });
     refAoa.push([]);
     refAoa.push([tipo === "ingresos" ? "CATEGORÍAS DE INGRESO" : "CATEGORÍAS DE GASTO"]);
     if (tipo === "ingresos") {
-      (catIngQ.data ?? []).forEach((c) => refAoa.push([c.nombre]));
+      (catIngQ.data ?? []).forEach((c) => refAoa.push([toStdNombre(c.nombre)]));
     } else {
       refAoa.push(["Categoría", "Aplica a"]);
-      (catGasQ.data ?? []).forEach((c) => refAoa.push([c.nombre, c.aplica_a]));
+      (catGasQ.data ?? []).forEach((c) => refAoa.push([toStdNombre(c.nombre), c.aplica_a]));
     }
     refAoa.push([]);
     refAoa.push(["FORMAS DE PAGO VÁLIDAS"]);
@@ -77,7 +78,7 @@ export async function GET(request: NextRequest) {
     if (tipo === "ingresos") {
       refAoa.push([]);
       refAoa.push(["APORTANTES YA CARGADOS (podés escribir cualquier nombre, si es nuevo se crea automático)"]);
-      (aportQ.data ?? []).forEach((a) => refAoa.push([a.nombre]));
+      (aportQ.data ?? []).forEach((a) => refAoa.push([toStdNombre(a.nombre)]));
     }
     const wsRef = XLSX.utils.aoa_to_sheet(refAoa);
     wsRef["!cols"] = [{ wch: 30 }, { wch: 30 }];

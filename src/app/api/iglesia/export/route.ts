@@ -5,6 +5,7 @@ import { API_ERRORS } from "@/lib/api/errors";
 import { PDFDocument, StandardFonts, rgb, type PDFPage, type PDFFont } from "pdf-lib";
 import * as XLSX from "xlsx";
 import { labelFormaPago } from "@/lib/iglesia/formas-pago";
+import { toStdNombre } from "@/lib/iglesia/normalize";
 
 type Movimiento = {
   id: string;
@@ -118,19 +119,19 @@ export async function GET(request: NextRequest) {
         ...rows.map((r) => tipo === "ingresos"
           ? [
               r.fecha,
-              r.filial?.sector?.nombre ?? (r.filial?.es_junta ? "JUNTA" : ""),
-              r.filial?.nombre ?? "",
-              r.categoria?.nombre ?? "",
-              r.aportante?.nombre ?? "",
+              toStdNombre(r.filial?.sector?.nombre ?? (r.filial?.es_junta ? "JUNTA" : "")),
+              toStdNombre(r.filial?.nombre ?? ""),
+              toStdNombre(r.categoria?.nombre ?? ""),
+              toStdNombre(r.aportante?.nombre ?? ""),
               labelFormaPago(r.forma_pago),
               r.descripcion ?? "",
               Number(r.monto),
             ]
           : [
               r.fecha,
-              r.filial?.sector?.nombre ?? (r.filial?.es_junta ? "JUNTA" : ""),
-              r.filial?.nombre ?? "",
-              r.categoria?.nombre ?? "",
+              toStdNombre(r.filial?.sector?.nombre ?? (r.filial?.es_junta ? "JUNTA" : "")),
+              toStdNombre(r.filial?.nombre ?? ""),
+              toStdNombre(r.categoria?.nombre ?? ""),
               labelFormaPago(r.forma_pago),
               r.descripcion ?? "",
               Number(r.monto),
@@ -225,19 +226,19 @@ export async function GET(request: NextRequest) {
       const cells = tipo === "ingresos"
         ? [
             r.fecha,
-            r.filial?.sector?.nombre ?? (r.filial?.es_junta ? "JUNTA" : ""),
-            r.filial?.nombre ?? "",
-            r.categoria?.nombre ?? "",
-            r.aportante?.nombre ?? "",
+            toStdNombre(r.filial?.sector?.nombre ?? (r.filial?.es_junta ? "JUNTA" : "")),
+            toStdNombre(r.filial?.nombre ?? ""),
+            toStdNombre(r.categoria?.nombre ?? ""),
+            toStdNombre(r.aportante?.nombre ?? ""),
             labelFormaPago(r.forma_pago),
             r.descripcion ?? "",
             montoStr,
           ]
         : [
             r.fecha,
-            r.filial?.sector?.nombre ?? (r.filial?.es_junta ? "JUNTA" : ""),
-            r.filial?.nombre ?? "",
-            r.categoria?.nombre ?? "",
+            toStdNombre(r.filial?.sector?.nombre ?? (r.filial?.es_junta ? "JUNTA" : "")),
+            toStdNombre(r.filial?.nombre ?? ""),
+            toStdNombre(r.categoria?.nombre ?? ""),
             labelFormaPago(r.forma_pago),
             r.descripcion ?? "",
             montoStr,

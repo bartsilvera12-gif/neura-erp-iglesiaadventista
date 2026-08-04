@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getTenantSupabaseFromAuth } from "@/lib/supabase/tenant-api";
 import { successResponse, errorResponse } from "@/lib/api/response";
 import { API_ERRORS } from "@/lib/api/errors";
+import { toStdNombre } from "@/lib/iglesia/normalize";
 
 /** GET /api/iglesia/filiales — lista de filiales activas con sector. */
 export async function GET(request: NextRequest) {
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
     const ctx = await getTenantSupabaseFromAuth(request);
     if (!ctx) return NextResponse.json(errorResponse(API_ERRORS.UNAUTHORIZED), { status: 401 });
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
-    const nombre = typeof body.nombre === "string" ? body.nombre.trim().toUpperCase() : "";
+    const nombre = typeof body.nombre === "string" ? toStdNombre(body.nombre) : "";
     const sector_id = typeof body.sector_id === "string" && body.sector_id ? body.sector_id : null;
     const es_junta = body.es_junta === true;
     const aplica_15_porciento = body.aplica_15_porciento === true;

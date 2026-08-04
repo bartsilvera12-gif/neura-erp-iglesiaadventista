@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getTenantSupabaseFromAuth } from "@/lib/supabase/tenant-api";
 import { successResponse, errorResponse } from "@/lib/api/response";
 import { API_ERRORS } from "@/lib/api/errors";
+import { toStdNombre } from "@/lib/iglesia/normalize";
 
 export async function GET(request: NextRequest) {
   try {
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
     const ctx = await getTenantSupabaseFromAuth(request);
     if (!ctx) return NextResponse.json(errorResponse(API_ERRORS.UNAUTHORIZED), { status: 401 });
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
-    const nombre = typeof body.nombre === "string" ? body.nombre.trim().toUpperCase() : "";
+    const nombre = typeof body.nombre === "string" ? toStdNombre(body.nombre) : "";
     const orden = Number(body.orden);
     if (!nombre) return NextResponse.json(errorResponse("El nombre es obligatorio."), { status: 400 });
     const { data, error } = await ctx.supabase

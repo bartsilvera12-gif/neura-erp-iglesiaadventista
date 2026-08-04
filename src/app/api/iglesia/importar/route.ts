@@ -4,6 +4,7 @@ import { successResponse, errorResponse } from "@/lib/api/response";
 import { API_ERRORS } from "@/lib/api/errors";
 import * as XLSX from "xlsx";
 import { parseFecha } from "@/lib/iglesia/date-parse";
+import { toStdKey } from "@/lib/iglesia/normalize";
 
 const FORMAS_VALIDAS = ["efectivo", "transferencia", "deposito", "cheque"];
 
@@ -12,8 +13,9 @@ type ImportResult = {
   errores: { fila: number; error: string }[];
 };
 
+// Normaliza para matcheo (sin acentos, sin mayusculas, sin espacios extras)
 function norm(s: unknown): string {
-  return String(s ?? "").trim().toLowerCase();
+  return toStdKey(s);
 }
 
 /**
