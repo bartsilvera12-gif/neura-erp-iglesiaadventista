@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     const ctx = await getTenantSupabaseFromAuth(request);
     if (!ctx) return NextResponse.json(errorResponse(API_ERRORS.UNAUTHORIZED), { status: 401 });
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
-    const nombre = typeof body.nombre === "string" ? body.nombre.trim() : "";
+    const nombre = typeof body.nombre === "string" ? body.nombre.trim().toUpperCase() : "";
     const telefono = typeof body.telefono === "string" ? body.telefono.trim() : "";
     const observaciones = typeof body.observaciones === "string" ? body.observaciones.trim() : "";
     if (!nombre) return NextResponse.json(errorResponse("El nombre es obligatorio."), { status: 400 });

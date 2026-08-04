@@ -9,7 +9,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (!ctx) return NextResponse.json(errorResponse(API_ERRORS.UNAUTHORIZED), { status: 401 });
     const { id } = await params;
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
-    const nombre = typeof body.nombre === "string" ? body.nombre.trim() : "";
+    const nombre = typeof body.nombre === "string" ? body.nombre.trim().toUpperCase() : "";
     const telefono = typeof body.telefono === "string" ? body.telefono.trim() : "";
     const observaciones = typeof body.observaciones === "string" ? body.observaciones.trim() : "";
     const activo = body.activo === false ? false : true;
