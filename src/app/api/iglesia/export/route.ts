@@ -22,6 +22,15 @@ function fmtGs(n: number): string {
   return Math.round(n).toLocaleString("es-PY");
 }
 
+/** Convierte "Capital y Central" -> "capital_y_central". Seguro para filenames. */
+function slugify(s: string): string {
+  return String(s)
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
 /** Reemplaza chars fuera de latin-1 (WinAnsi) por equivalentes ASCII. */
 function ansiSafe(s: string): string {
   return String(s)
@@ -84,7 +93,21 @@ export async function GET(request: NextRequest) {
     const rows = (data ?? []) as unknown as Movimiento[];
     const titulo = tipo === "gastos" ? "Reporte de Gastos" : "Reporte de Ingresos";
     const rangoTxt = `${desde || "inicio"} a ${hasta || "hoy"}`;
-    const filenameBase = `${tipo}_${(desde || "todo")}_${(hasta || "todo")}`;
+
+    // Nombre de archivo dinamico segun los filtros seleccionados
+    // Ej: reporte_ingresos_capital_y_central_asuncion_diezmo_2026-08.xlsx
+    const parts: string[] = ["reporte", tipo];
+    const catNameFn = tipo === "gastos" ? "categorias_gasto" : "categorias_ingreso";
+    const [secQ, filQ, catQ] = await Promise.all([
+      sector ? ctx.supabase.from("sectores").select("nombre").eq("id", sector).eq("empresa_id", ctx.auth.empresa_id).maybeSingle() : Promise.resolve({ data: null }),
+      filial ? ctx.supabase.from("filiales").select("nombre").eq("id", filial).eq("empresa_id", ctx.auth.empresa_id).maybeSingle() : Promise.resolve({ data: null }),
+      categoria ? ctx.supabase.from(catNameFn).select("nombre").eq("id", categoria).eq("empresa_id", ctx.auth.empresa_id).maybeSingle() : Promise.resolve({ data: null }),
+    ]);
+    if (secQ.data?.nombre) parts.push(slugify(secQ.data.nombre));
+    if (filQ.data?.nombre) parts.push(slugify(filQ.data.nombre));
+    if (catQ.data?.nombre) parts.push(slugify(catQ.data.nombre));
+    if (desde || hasta) parts.push(`${desde || "todo"}_a_${hasta || "hoy"}`);
+    const filenameBase = parts.filter(Boolean).join("_");
 
     if (formato === "xlsx") {
       const header = tipo === "ingresos"
