@@ -132,11 +132,13 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // PDF
+    // PDF — A4 horizontal (mas ancho para columnas)
     const pdf = await PDFDocument.create();
     const font = await pdf.embedFont(StandardFonts.Helvetica);
     const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-    let page = pdf.addPage([595.28, 841.89]); // A4 portrait
+    const PAGE_W = 841.89;
+    const PAGE_H = 595.28;
+    let page = pdf.addPage([PAGE_W, PAGE_H]);
     const margin = 36;
     let y = page.getHeight() - margin;
 
@@ -145,7 +147,7 @@ export async function GET(request: NextRequest) {
     };
     const newPageIfNeeded = () => {
       if (y < margin + 40) {
-        page = pdf.addPage([595.28, 841.89]);
+        page = pdf.addPage([PAGE_W, PAGE_H]);
         y = page.getHeight() - margin;
       }
     };
@@ -156,16 +158,27 @@ export async function GET(request: NextRequest) {
     drawText(`Período: ${rangoTxt}`, margin, y, 9); y -= 10;
     drawText(`Generado: ${new Date().toISOString().slice(0, 19).replace("T", " ")}`, margin, y, 8); y -= 16;
 
-    // Columnas
-    const cols = [
-      { label: "Fecha",     x: margin,     w: 55 },
-      { label: "Sector",    x: margin+57,  w: 70 },
-      { label: "Filial",    x: margin+129, w: 90 },
-      { label: "Categoría", x: margin+221, w: 100 },
-      { label: "F. pago",   x: margin+323, w: 55 },
-      { label: "Descrip.",  x: margin+380, w: 85 },
-      { label: "Monto",     x: margin+468, w: 60, align: "right" as const },
-    ];
+    // Columnas (A4 horizontal: 842 - 2*36 = 770pt utiles)
+    const cols = tipo === "ingresos"
+      ? [
+          { label: "Fecha",     x: margin,     w: 60 },
+          { label: "Sector",    x: margin+62,  w: 95 },
+          { label: "Filial",    x: margin+159, w: 110 },
+          { label: "Categoría", x: margin+271, w: 120 },
+          { label: "Aportante", x: margin+393, w: 130 },
+          { label: "F. pago",   x: margin+525, w: 70 },
+          { label: "Descrip.",  x: margin+597, w: 100 },
+          { label: "Monto",     x: margin+699, w: 70, align: "right" as const },
+        ]
+      : [
+          { label: "Fecha",     x: margin,     w: 60 },
+          { label: "Sector",    x: margin+62,  w: 110 },
+          { label: "Filial",    x: margin+174, w: 130 },
+          { label: "Categoría", x: margin+306, w: 150 },
+          { label: "F. pago",   x: margin+458, w: 80 },
+          { label: "Descrip.",  x: margin+540, w: 155 },
+          { label: "Monto",     x: margin+697, w: 70, align: "right" as const },
+        ];
 
     const drawHeader = () => {
       for (const c of cols) drawText(c.label, c.x, y, 9, bold);
@@ -183,15 +196,26 @@ export async function GET(request: NextRequest) {
         drawHeader();
       }
       const montoStr = fmtGs(Number(r.monto));
-      const cells = [
-        r.fecha,
-        r.filial?.sector?.nombre ?? (r.filial?.es_junta ? "JUNTA" : ""),
-        r.filial?.nombre ?? "",
-        r.categoria?.nombre ?? "",
-        labelFormaPago(r.forma_pago),
-        r.descripcion ?? "",
-        montoStr,
-      ];
+      const cells = tipo === "ingresos"
+        ? [
+            r.fecha,
+            r.filial?.sector?.nombre ?? (r.filial?.es_junta ? "JUNTA" : ""),
+            r.filial?.nombre ?? "",
+            r.categoria?.nombre ?? "",
+            r.aportante?.nombre ?? "",
+            labelFormaPago(r.forma_pago),
+            r.descripcion ?? "",
+            montoStr,
+          ]
+        : [
+            r.fecha,
+            r.filial?.sector?.nombre ?? (r.filial?.es_junta ? "JUNTA" : ""),
+            r.filial?.nombre ?? "",
+            r.categoria?.nombre ?? "",
+            labelFormaPago(r.forma_pago),
+            r.descripcion ?? "",
+            montoStr,
+          ];
       for (let i = 0; i < cols.length; i++) {
         const c = cols[i]!;
         const txt = String(cells[i] ?? "");
@@ -211,10 +235,12 @@ export async function GET(request: NextRequest) {
     y -= 6;
     page.drawLine({ start: { x: margin, y }, end: { x: page.getWidth() - margin, y }, thickness: 0.5, color: rgb(0.5,0.5,0.5) });
     y -= 12;
-    drawText("TOTAL:", cols[5]!.x, y, 10, bold);
+    const totalLabelIdx = cols.length - 2;
+    const totalValueIdx = cols.length - 1;
+    drawText("TOTAL:", cols[totalLabelIdx]!.x, y, 10, bold);
     const totalStr = fmtGs(total);
     const wTot = bold.widthOfTextAtSize(totalStr, 10);
-    drawText(totalStr, cols[6]!.x + cols[6]!.w - wTot, y, 10, bold);
+    drawText(totalStr, cols[totalValueIdx]!.x + cols[totalValueIdx]!.w - wTot, y, 10, bold);
 
     const pdfBytes = await pdf.save();
     return new NextResponse(new Uint8Array(pdfBytes), {
