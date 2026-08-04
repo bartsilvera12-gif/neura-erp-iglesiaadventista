@@ -89,6 +89,7 @@ const MENU_STRUCTURE: MenuItem[] = [
   // IGLESIA ADVENTISTA DE LA PROMESA: solo Dashboard y Gastos.
   // El resto queda oculto (codigo conservado por si se reactiva luego).
   { key: "dashboard", slug: "dashboard", label: "Dashboard", href: "/", icon: LayoutDashboard },
+  { key: "ingresos", slug: "ventas", label: "Ingresos", href: "/ingresos", icon: Wallet },
   { key: "gastos", slug: "gastos", label: "Gastos", href: "/gastos", icon: Receipt },
   // Items ocultos en ferreteria (no aplican / duplicados):
   // - Planes: suscripciones, modelo SaaS.

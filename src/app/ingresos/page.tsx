@@ -5,18 +5,22 @@ import { useEffect, useMemo, useState } from "react";
 import { fetchWithSupabaseSession } from "@/lib/api/fetch-with-supabase-session";
 
 type Filial = {
-  id: string; nombre: string; es_junta: boolean; aplica_15_porciento: boolean;
+  id: string;
+  nombre: string;
+  es_junta: boolean;
+  aplica_15_porciento: boolean;
   sector_id: string | null;
   sectores: { id: string; nombre: string; orden: number } | null;
 };
-type Categoria = { id: string; nombre: string; aplica_a: string; orden: number };
 
-type Gasto = {
+type Categoria = { id: string; nombre: string; orden: number };
+
+type Ingreso = {
   id: string;
   fecha: string;
   monto: number;
   descripcion: string | null;
-  filial: { id: string; nombre: string; es_junta: boolean;
+  filial: { id: string; nombre: string; es_junta: boolean; aplica_15_porciento: boolean;
             sector?: { id: string; nombre: string } | null } | null;
   categoria: { id: string; nombre: string } | null;
 };
@@ -25,10 +29,10 @@ function fmtGs(n: number) {
   return `${Math.round(n).toLocaleString("es-PY")} ₲`;
 }
 
-export default function GastosPage() {
+export default function IngresosPage() {
   const [filiales, setFiliales] = useState<Filial[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [gastos, setGastos] = useState<Gasto[]>([]);
+  const [ingresos, setIngresos] = useState<Ingreso[]>([]);
   const [cargando, setCargando] = useState(true);
 
   const [desde, setDesde] = useState("");
@@ -57,7 +61,7 @@ export default function GastosPage() {
       const fJ = await fRes.json();
       const cJ = await cRes.json();
       if (fJ?.success) setFiliales(fJ.data);
-      if (cJ?.success) setCategorias(cJ.data.gasto);
+      if (cJ?.success) setCategorias(cJ.data.ingreso);
     })();
   }, []);
 
@@ -69,21 +73,21 @@ export default function GastosPage() {
     if (filtroSector) qs.set("sector", filtroSector);
     if (filtroFilial) qs.set("filial", filtroFilial);
     if (filtroCategoria) qs.set("categoria", filtroCategoria);
-    const res = await fetchWithSupabaseSession(`/api/iglesia/gastos?${qs.toString()}`, { cache: "no-store" });
+    const res = await fetchWithSupabaseSession(`/api/iglesia/ingresos?${qs.toString()}`, { cache: "no-store" });
     const j = await res.json();
-    setGastos(j?.success ? j.data : []);
+    setIngresos(j?.success ? j.data : []);
     setCargando(false);
   }
   useEffect(() => { cargar(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
   async function eliminar(id: string) {
-    if (!confirm("¿Eliminar este gasto?")) return;
-    const res = await fetchWithSupabaseSession(`/api/iglesia/gastos/${id}`, { method: "DELETE" });
-    if (res.ok) setGastos((prev) => prev.filter((x) => x.id !== id));
+    if (!confirm("¿Eliminar este ingreso?")) return;
+    const res = await fetchWithSupabaseSession(`/api/iglesia/ingresos/${id}`, { method: "DELETE" });
+    if (res.ok) setIngresos((prev) => prev.filter((x) => x.id !== id));
   }
 
   function download(formato: "pdf" | "xlsx") {
-    const qs = new URLSearchParams({ tipo: "gastos", formato });
+    const qs = new URLSearchParams({ tipo: "ingresos", formato });
     if (desde) qs.set("desde", desde);
     if (hasta) qs.set("hasta", hasta);
     if (filtroSector) qs.set("sector", filtroSector);
@@ -92,14 +96,14 @@ export default function GastosPage() {
     window.open(`/api/iglesia/export?${qs.toString()}`, "_blank");
   }
 
-  const total = gastos.reduce((s, r) => s + Number(r.monto || 0), 0);
+  const total = ingresos.reduce((s, r) => s + Number(r.monto || 0), 0);
 
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900">Gastos</h1>
-          <p className="text-xs text-slate-500">Gastos por filial (incluye JUNTA)</p>
+          <h1 className="text-lg font-semibold text-slate-900">Ingresos</h1>
+          <p className="text-xs text-slate-500">Diezmos, ofrendas y votos por filial</p>
         </div>
         <div className="flex gap-2">
           <button onClick={() => download("pdf")} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
@@ -108,8 +112,8 @@ export default function GastosPage() {
           <button onClick={() => download("xlsx")} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
             📊 Excel
           </button>
-          <Link href="/gastos/nuevo" className="rounded-lg bg-[#4FAEB2] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#3F8E91]">
-            + Nuevo gasto
+          <Link href="/ingresos/nuevo" className="rounded-lg bg-[#4FAEB2] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#3F8E91]">
+            + Nuevo ingreso
           </Link>
         </div>
       </div>
@@ -154,10 +158,10 @@ export default function GastosPage() {
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
         {cargando ? (
           <div className="py-16 text-center text-sm text-slate-400">Cargando…</div>
-        ) : gastos.length === 0 ? (
+        ) : ingresos.length === 0 ? (
           <div className="py-16 text-center text-slate-500">
-            <p className="text-4xl mb-3">📋</p>
-            <p className="text-sm">No hay gastos con esos filtros.</p>
+            <p className="text-4xl mb-3">📥</p>
+            <p className="text-sm">No hay ingresos con esos filtros.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -174,14 +178,14 @@ export default function GastosPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {gastos.map((r) => (
+                {ingresos.map((r) => (
                   <tr key={r.id} className="hover:bg-slate-50">
                     <td className="px-4 py-2">{r.fecha}</td>
                     <td className="px-4 py-2 text-slate-600">{r.filial?.sector?.nombre ?? (r.filial?.es_junta ? "JUNTA" : "")}</td>
                     <td className="px-4 py-2 font-medium">{r.filial?.nombre ?? "—"}</td>
                     <td className="px-4 py-2 text-slate-600">{r.categoria?.nombre ?? "—"}</td>
                     <td className="px-4 py-2 text-slate-500">{r.descripcion ?? "—"}</td>
-                    <td className="px-4 py-2 text-right font-semibold text-rose-700">{fmtGs(Number(r.monto))}</td>
+                    <td className="px-4 py-2 text-right font-semibold text-emerald-700">{fmtGs(Number(r.monto))}</td>
                     <td className="px-4 py-2 text-right">
                       <button onClick={() => eliminar(r.id)} className="text-xs text-red-600 hover:underline">Eliminar</button>
                     </td>
@@ -191,7 +195,7 @@ export default function GastosPage() {
               <tfoot>
                 <tr className="border-t-2 border-slate-300 bg-slate-50 font-semibold">
                   <td colSpan={5} className="px-4 py-2 text-right">TOTAL</td>
-                  <td className="px-4 py-2 text-right text-rose-800">{fmtGs(total)}</td>
+                  <td className="px-4 py-2 text-right text-emerald-800">{fmtGs(total)}</td>
                   <td></td>
                 </tr>
               </tfoot>
