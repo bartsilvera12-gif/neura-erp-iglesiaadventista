@@ -10,7 +10,6 @@ type Data = {
   totales: {
     ingresos: number;
     gastos: number;
-    casilla_15pct: number;
     balance: number;
     cant_ingresos: number;
     cant_gastos: number;
@@ -112,16 +111,10 @@ export default function DashboardIglesia() {
       ) : (
         <>
           {/* Tarjetas de totales */}
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <Card titulo="Ingresos" valor={fmtGs(data.totales.ingresos)} sub={`${data.totales.cant_ingresos} mov.`} color="emerald" />
             <Card titulo="Gastos"   valor={fmtGs(data.totales.gastos)}   sub={`${data.totales.cant_gastos} mov.`}   color="rose" />
-            <Card
-              titulo="15% Casilla 2"
-              valor={fmtGs(data.totales.casilla_15pct)}
-              sub={data.totales.casilla_15pct > 0 ? "aplicado en balance" : "sin ingresos Casilla 2"}
-              color="amber"
-            />
-            <Card titulo="Balance neto" valor={fmtGs(data.totales.balance)} sub="ingresos − gastos − 15%" color={data.totales.balance >= 0 ? "emerald" : "rose"} bold />
+            <Card titulo="Balance neto" valor={fmtGs(data.totales.balance)} sub="ingresos − gastos" color={data.totales.balance >= 0 ? "emerald" : "rose"} bold />
           </div>
 
           {/* Grids de breakdowns */}

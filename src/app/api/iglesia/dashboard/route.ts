@@ -62,13 +62,7 @@ export async function GET(request: NextRequest) {
     const sumar = (rows: Row[]) => rows.reduce((s, r) => s + Number(r.monto || 0), 0);
     const totalIngresos = sumar(ingresos);
     const totalGastos   = sumar(gastos);
-
-    // 15% Casilla 2 solo sobre ingresos de filiales marcadas aplica_15_porciento
-    const monto15 = ingresos
-      .filter((r) => r.filial?.aplica_15_porciento)
-      .reduce((s, r) => s + Number(r.monto || 0), 0) * 0.15;
-
-    const balance = totalIngresos - totalGastos - monto15;
+    const balance = totalIngresos - totalGastos;
 
     // Agrupador generico
     const groupBy = (rows: Row[], keyFn: (r: Row) => { id: string; nombre: string } | null) => {
@@ -89,7 +83,6 @@ export async function GET(request: NextRequest) {
       totales: {
         ingresos: totalIngresos,
         gastos: totalGastos,
-        casilla_15pct: Math.round(monto15),
         balance: Math.round(balance),
         cant_ingresos: ingresos.length,
         cant_gastos: gastos.length,

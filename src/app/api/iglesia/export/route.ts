@@ -62,18 +62,6 @@ export async function GET(request: NextRequest) {
     if (error) return NextResponse.json(errorResponse(error.message), { status: 400 });
 
     const rows = (data ?? []) as unknown as Movimiento[];
-
-    // Regla 15% Casilla 2: solo aplica al reporte de INGRESOS filtrado por esa filial
-    let extra15 = 0;
-    let mostrar15 = false;
-    if (tipo === "ingresos") {
-      const solo15 = rows.filter((r) => r.filial?.aplica_15_porciento === true);
-      if (solo15.length > 0) {
-        extra15 = solo15.reduce((s, r) => s + Number(r.monto || 0), 0) * 0.15;
-        mostrar15 = true;
-      }
-    }
-
     const titulo = tipo === "gastos" ? "Reporte de Gastos" : "Reporte de Ingresos";
     const rangoTxt = `${desde || "…"} → ${hasta || "…"}`;
     const filenameBase = `${tipo}_${(desde || "todo")}_${(hasta || "todo")}`;
@@ -93,10 +81,6 @@ export async function GET(request: NextRequest) {
       const total = rows.reduce((s, r) => s + Number(r.monto || 0), 0);
       aoa.push([]);
       aoa.push(["", "", "", "", "TOTAL", total]);
-      if (mostrar15) {
-        aoa.push(["", "", "", "", "15% Casilla 2 (calculado)", Math.round(extra15)]);
-        aoa.push(["", "", "", "", "TOTAL NETO", Math.round(total - extra15)]);
-      }
       const ws = XLSX.utils.aoa_to_sheet(aoa);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, tipo);
@@ -190,19 +174,6 @@ export async function GET(request: NextRequest) {
     const totalStr = fmtGs(total);
     const wTot = bold.widthOfTextAtSize(totalStr, 10);
     drawText(totalStr, cols[5]!.x + cols[5]!.w - wTot, y, 10, bold);
-    y -= 14;
-
-    if (mostrar15) {
-      drawText("15% Casilla 2 (calculado):", cols[3]!.x, y, 9, bold);
-      const s = fmtGs(extra15);
-      const w = bold.widthOfTextAtSize(s, 9);
-      drawText(s, cols[5]!.x + cols[5]!.w - w, y, 9, bold);
-      y -= 12;
-      drawText("TOTAL NETO:", cols[4]!.x, y, 10, bold);
-      const neto = fmtGs(total - extra15);
-      const wN = bold.widthOfTextAtSize(neto, 10);
-      drawText(neto, cols[5]!.x + cols[5]!.w - wN, y, 10, bold);
-    }
 
     const pdfBytes = await pdf.save();
     return new NextResponse(new Uint8Array(pdfBytes), {
