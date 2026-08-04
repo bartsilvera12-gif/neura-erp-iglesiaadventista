@@ -26,9 +26,9 @@ export function AportanteQuickAdd({ onCreated }: { onCreated: (a: Aportante) => 
     setGuardando(false);
   }
 
-  async function guardar(e: React.FormEvent) {
-    e.preventDefault();
+  async function guardar() {
     setError(null);
+    if (!nombre.trim()) return setError("El nombre es obligatorio.");
     setGuardando(true);
     const res = await fetchWithSupabaseSession("/api/iglesia/aportantes", {
       method: "POST",
@@ -42,6 +42,10 @@ export function AportanteQuickAdd({ onCreated }: { onCreated: (a: Aportante) => 
     close();
   }
 
+  function onKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter") { e.preventDefault(); guardar(); }
+  }
+
   return (
     <>
       <button type="button" onClick={() => setOpen(true)}
@@ -51,13 +55,14 @@ export function AportanteQuickAdd({ onCreated }: { onCreated: (a: Aportante) => 
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" onClick={close}>
-          <form onSubmit={guardar}
+          <div
             className="w-full max-w-md space-y-4 rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-[#4FAEB2]/20"
-            onClick={(e) => e.stopPropagation()}>
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={onKeyDown}>
             <h3 className="text-base font-semibold text-slate-900">Nuevo aportante</h3>
             <label className="block text-sm">
               <span className="mb-1 block text-xs font-semibold text-slate-700">Nombre *</span>
-              <input required autoFocus value={nombre} onChange={(e) => setNombre(e.target.value)}
+              <input autoFocus value={nombre} onChange={(e) => setNombre(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-[#4FAEB2] focus:outline-none focus:ring-2 focus:ring-[#4FAEB2]/20" />
             </label>
             <label className="block text-sm">
@@ -76,12 +81,12 @@ export function AportanteQuickAdd({ onCreated }: { onCreated: (a: Aportante) => 
                 className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
                 Cancelar
               </button>
-              <button disabled={guardando} type="submit"
+              <button type="button" disabled={guardando} onClick={guardar}
                 className="rounded-xl bg-[#4FAEB2] px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-[#4FAEB2]/25 hover:bg-[#3F8E91] active:scale-95 disabled:opacity-50">
                 {guardando ? "Guardando…" : "Guardar y usar"}
               </button>
             </div>
-          </form>
+          </div>
         </div>
       )}
     </>
