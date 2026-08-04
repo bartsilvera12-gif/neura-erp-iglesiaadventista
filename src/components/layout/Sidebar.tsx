@@ -92,6 +92,7 @@ const MENU_STRUCTURE: MenuItem[] = [
   { key: "ingresos", slug: "ventas", label: "Ingresos", href: "/ingresos", icon: Wallet },
   { key: "gastos", slug: "gastos", label: "Gastos", href: "/gastos", icon: Receipt },
   { key: "aportantes", slug: "clientes", label: "Aportantes", href: "/aportantes", icon: Users },
+  { key: "estructura", slug: "configuracion", label: "Sectores y Filiales", href: "/estructura", icon: Building2 },
   // Items ocultos en ferreteria (no aplican / duplicados):
   // - Planes: suscripciones, modelo SaaS.
   // - Gestion Clientes: duplicado de Clientes con vista distinta.
@@ -122,6 +123,7 @@ const MENU_FAMILIES: { id: string; titulo: string; keys: string[] }[] = [
   { id: "inicio", titulo: "Inicio", keys: ["dashboard"] },
   { id: "comercial", titulo: "Comercial", keys: ["clientes", "crm", "gestion-clientes", "ventas", "presupuestos", "planes"] },
   { id: "finanzas", titulo: "Finanzas", keys: ["ingresos", "gastos", "aportantes", "pagos", "otros_ingresos", "entidades_bancarias", "notas_credito", "reportes"] },
+  { id: "administracion_iglesia", titulo: "Configuración", keys: ["estructura"] },
   { id: "operaciones", titulo: "Operaciones", keys: ["inventario", "compras", "recetas", "proyectos"] },
   { id: "omnicanal", titulo: "Omnicanal", keys: ["conversaciones", "conversaciones-finalizadas", "historial-omnicanal", "monitoreo", "campanas"] },
   { id: "marketing", titulo: "Marketing y Automatización", keys: ["marketing", "marketing_ops", "sorteos"] },

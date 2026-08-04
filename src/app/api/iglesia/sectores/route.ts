@@ -3,18 +3,15 @@ import { getTenantSupabaseFromAuth } from "@/lib/supabase/tenant-api";
 import { successResponse, errorResponse } from "@/lib/api/response";
 import { API_ERRORS } from "@/lib/api/errors";
 
-/** GET /api/iglesia/filiales — lista de filiales activas con sector. */
 export async function GET(request: NextRequest) {
   try {
     const ctx = await getTenantSupabaseFromAuth(request);
-    if (!ctx) {
-      return NextResponse.json(errorResponse(API_ERRORS.UNAUTHORIZED), { status: 401 });
-    }
+    if (!ctx) return NextResponse.json(errorResponse(API_ERRORS.UNAUTHORIZED), { status: 401 });
     const { data, error } = await ctx.supabase
-      .from("filiales")
-      .select("id, nombre, es_junta, aplica_15_porciento, sector_id, sectores(id, nombre, orden)")
+      .from("sectores")
+      .select("id, nombre, orden, activo")
       .eq("empresa_id", ctx.auth.empresa_id)
-      .eq("activo", true)
+      .order("orden")
       .order("nombre");
     if (error) return NextResponse.json(errorResponse(error.message), { status: 400 });
     return NextResponse.json(successResponse(data ?? []));
@@ -24,21 +21,17 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/** POST /api/iglesia/filiales — crea filial. Nombre siempre MAYUSCULAS. */
 export async function POST(request: NextRequest) {
   try {
     const ctx = await getTenantSupabaseFromAuth(request);
     if (!ctx) return NextResponse.json(errorResponse(API_ERRORS.UNAUTHORIZED), { status: 401 });
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
     const nombre = typeof body.nombre === "string" ? body.nombre.trim().toUpperCase() : "";
-    const sector_id = typeof body.sector_id === "string" && body.sector_id ? body.sector_id : null;
-    const es_junta = body.es_junta === true;
-    const aplica_15_porciento = body.aplica_15_porciento === true;
+    const orden = Number(body.orden);
     if (!nombre) return NextResponse.json(errorResponse("El nombre es obligatorio."), { status: 400 });
-    if (!es_junta && !sector_id) return NextResponse.json(errorResponse("Elegí un sector (o marcá 'Es JUNTA')."), { status: 400 });
     const { data, error } = await ctx.supabase
-      .from("filiales")
-      .insert({ empresa_id: ctx.auth.empresa_id, nombre, sector_id: es_junta ? null : sector_id, es_junta, aplica_15_porciento })
+      .from("sectores")
+      .insert({ empresa_id: ctx.auth.empresa_id, nombre, orden: Number.isFinite(orden) ? orden : 0 })
       .select()
       .single();
     if (error) return NextResponse.json(errorResponse(error.message), { status: 400 });
