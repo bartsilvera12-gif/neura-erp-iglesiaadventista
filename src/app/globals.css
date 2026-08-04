@@ -164,15 +164,11 @@ body {
 .focus\:border-\[\#14B8A6\]:focus { border-color: #4FAEB2 !important; }
 
 /* =============================================================================
-   Sidebar — gradiente sutil estilo Zentra (top más claro, bottom más oscuro).
-   Base #0B3A3D con elevated #104A4E. La luz cae hacia esquina superior derecha,
-   sombra hacia abajo.
+   Sidebar — color sólido Zentra (#0B3A3D).
+   Ámbito: esta clase la usa SOLO el <aside> del sidebar.
    ============================================================================= */
 .zentra-sidebar-bg {
-  background:
-    radial-gradient(ellipse 120% 60% at 100% 0%, rgba(255, 255, 255, 0.06), transparent 55%),
-    radial-gradient(ellipse 120% 60% at 0% 0%, rgba(255, 255, 255, 0.04), transparent 55%),
-    linear-gradient(180deg, #104A4E 0%, #0B3A3D 35%, #082A2D 100%);
+  background: #0B3A3D;
 }
 
 /* =============================================================================
