@@ -9,6 +9,7 @@ import { buildFilialOptions, type FilialLite } from "@/lib/iglesia/build-filial-
 import { FORMAS_PAGO } from "@/lib/iglesia/formas-pago";
 
 type Categoria = { id: string; nombre: string };
+type Aportante = { id: string; nombre: string };
 
 export default function NuevoIngresoPage() {
   const router = useRouter();
@@ -17,9 +18,11 @@ export default function NuevoIngresoPage() {
 
   const [filiales, setFiliales] = useState<FilialLite[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [aportantes, setAportantes] = useState<Aportante[]>([]);
 
   const [filialId, setFilialId] = useState("");
   const [categoriaId, setCategoriaId] = useState("");
+  const [aportanteId, setAportanteId] = useState("");
   const [fecha, setFecha] = useState(() => new Date().toISOString().slice(0, 10));
   const [monto, setMonto] = useState("");
   const [descripcion, setDescripcion] = useState("");
@@ -29,14 +32,17 @@ export default function NuevoIngresoPage() {
 
   useEffect(() => {
     (async () => {
-      const [fRes, cRes] = await Promise.all([
+      const [fRes, cRes, aRes] = await Promise.all([
         fetchWithSupabaseSession("/api/iglesia/filiales", { cache: "no-store" }),
         fetchWithSupabaseSession("/api/iglesia/categorias", { cache: "no-store" }),
+        fetchWithSupabaseSession("/api/iglesia/aportantes", { cache: "no-store" }),
       ]);
       const fJ = await fRes.json();
       const cJ = await cRes.json();
+      const aJ = await aRes.json();
       if (fJ?.success) setFiliales(fJ.data);
       if (cJ?.success) setCategorias(cJ.data.ingreso);
+      if (aJ?.success) setAportantes(aJ.data);
 
       if (duplicarId) {
         const dRes = await fetchWithSupabaseSession(`/api/iglesia/ingresos/${duplicarId}`, { cache: "no-store" });
@@ -44,6 +50,7 @@ export default function NuevoIngresoPage() {
         if (dJ?.success) {
           setFilialId(dJ.data.filial_id ?? "");
           setCategoriaId(dJ.data.categoria_id ?? "");
+          setAportanteId(dJ.data.aportante_id ?? "");
           setMonto(String(dJ.data.monto ?? ""));
           setDescripcion(dJ.data.descripcion ?? "");
           setFormaPago(dJ.data.forma_pago ?? "");
@@ -59,6 +66,10 @@ export default function NuevoIngresoPage() {
     () => [{ value: "", label: "— sin especificar —" }, ...FORMAS_PAGO.map((f) => ({ value: f.value, label: f.label }))],
     []
   );
+  const aportanteOptions = useMemo(
+    () => [{ value: "", label: "— sin aportante (anónimo) —" }, ...aportantes.map((a) => ({ value: a.id, label: a.nombre }))],
+    [aportantes]
+  );
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
@@ -72,6 +83,7 @@ export default function NuevoIngresoPage() {
       body: JSON.stringify({
         filial_id: filialId, categoria_id: categoriaId, fecha,
         monto: Number(monto), descripcion, forma_pago: formaPago,
+        aportante_id: aportanteId,
       }),
     });
     const j = await res.json();
@@ -117,6 +129,11 @@ export default function NuevoIngresoPage() {
         <div>
           <label className="mb-1 block text-xs font-semibold text-slate-700">Forma de pago</label>
           <FancySelect options={formaPagoOptions} value={formaPago} onChange={setFormaPago} placeholder="— sin especificar —" />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-semibold text-slate-700">Aportante</label>
+          <FancySelect options={aportanteOptions} value={aportanteId} onChange={setAportanteId} placeholder="— sin aportante —" />
+          <p className="mt-1 text-[11px] text-slate-400">¿No está en la lista? Agregalo desde el módulo Aportantes.</p>
         </div>
         <label className="block text-sm">
           <span className="mb-1 block text-xs font-semibold text-slate-700">Descripción</span>

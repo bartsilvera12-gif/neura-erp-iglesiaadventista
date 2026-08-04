@@ -9,6 +9,7 @@ import { buildFilialOptions, type FilialLite } from "@/lib/iglesia/build-filial-
 import { FORMAS_PAGO } from "@/lib/iglesia/formas-pago";
 
 type Categoria = { id: string; nombre: string };
+type Aportante = { id: string; nombre: string };
 
 export default function EditarIngresoPage() {
   const router = useRouter();
@@ -16,8 +17,10 @@ export default function EditarIngresoPage() {
 
   const [filiales, setFiliales] = useState<FilialLite[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [aportantes, setAportantes] = useState<Aportante[]>([]);
   const [filialId, setFilialId] = useState("");
   const [categoriaId, setCategoriaId] = useState("");
+  const [aportanteId, setAportanteId] = useState("");
   const [fecha, setFecha] = useState("");
   const [monto, setMonto] = useState("");
   const [descripcion, setDescripcion] = useState("");
@@ -28,19 +31,23 @@ export default function EditarIngresoPage() {
 
   useEffect(() => {
     (async () => {
-      const [fRes, cRes, iRes] = await Promise.all([
+      const [fRes, cRes, aRes, iRes] = await Promise.all([
         fetchWithSupabaseSession("/api/iglesia/filiales", { cache: "no-store" }),
         fetchWithSupabaseSession("/api/iglesia/categorias", { cache: "no-store" }),
+        fetchWithSupabaseSession("/api/iglesia/aportantes", { cache: "no-store" }),
         fetchWithSupabaseSession(`/api/iglesia/ingresos/${id}`, { cache: "no-store" }),
       ]);
       const fJ = await fRes.json();
       const cJ = await cRes.json();
+      const aJ = await aRes.json();
       const iJ = await iRes.json();
       if (fJ?.success) setFiliales(fJ.data);
       if (cJ?.success) setCategorias(cJ.data.ingreso);
+      if (aJ?.success) setAportantes(aJ.data);
       if (iJ?.success) {
         setFilialId(iJ.data.filial_id ?? "");
         setCategoriaId(iJ.data.categoria_id ?? "");
+        setAportanteId(iJ.data.aportante_id ?? "");
         setFecha(iJ.data.fecha ?? "");
         setMonto(String(iJ.data.monto ?? ""));
         setDescripcion(iJ.data.descripcion ?? "");
@@ -59,6 +66,10 @@ export default function EditarIngresoPage() {
     () => [{ value: "", label: "— sin especificar —" }, ...FORMAS_PAGO.map((f) => ({ value: f.value, label: f.label }))],
     []
   );
+  const aportanteOptions = useMemo(
+    () => [{ value: "", label: "— sin aportante (anónimo) —" }, ...aportantes.map((a) => ({ value: a.id, label: a.nombre }))],
+    [aportantes]
+  );
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
@@ -76,6 +87,7 @@ export default function EditarIngresoPage() {
         monto: Number(monto),
         descripcion,
         forma_pago: formaPago,
+        aportante_id: aportanteId,
       }),
     });
     const j = await res.json();
@@ -120,6 +132,10 @@ export default function EditarIngresoPage() {
         <div>
           <label className="mb-1 block text-xs font-semibold text-slate-700">Forma de pago</label>
           <FancySelect options={formaPagoOptions} value={formaPago} onChange={setFormaPago} placeholder="— sin especificar —" />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-semibold text-slate-700">Aportante</label>
+          <FancySelect options={aportanteOptions} value={aportanteId} onChange={setAportanteId} placeholder="— sin aportante —" />
         </div>
         <label className="block text-sm">
           <span className="mb-1 block text-xs font-semibold text-slate-700">Descripción</span>

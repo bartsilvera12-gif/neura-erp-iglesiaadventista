@@ -17,6 +17,7 @@ type Ingreso = {
   filial: { id: string; nombre: string; es_junta: boolean; aplica_15_porciento: boolean;
             sector?: { id: string; nombre: string } | null } | null;
   categoria: { id: string; nombre: string } | null;
+  aportante: { id: string; nombre: string } | null;
 };
 
 function fmtGs(n: number) {
@@ -178,6 +179,7 @@ export default function IngresosPage() {
                   <th className="px-4 py-2.5 text-left">Sector</th>
                   <th className="px-4 py-2.5 text-left">Filial</th>
                   <th className="px-4 py-2.5 text-left">Categoría</th>
+                  <th className="px-4 py-2.5 text-left">Aportante</th>
                   <th className="px-4 py-2.5 text-left">Forma pago</th>
                   <th className="px-4 py-2.5 text-left">Descripción</th>
                   <th className="px-4 py-2.5 text-right">Monto</th>
@@ -191,6 +193,7 @@ export default function IngresosPage() {
                     <td className="px-4 py-2.5 text-slate-600">{r.filial?.sector?.nombre ?? (r.filial?.es_junta ? "JUNTA" : "")}</td>
                     <td className="px-4 py-2.5 font-medium">{r.filial?.nombre ?? "—"}</td>
                     <td className="px-4 py-2.5 text-slate-600">{r.categoria?.nombre ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-slate-600">{r.aportante?.nombre ?? "—"}</td>
                     <td className="px-4 py-2.5 text-slate-500">{labelFormaPago(r.forma_pago) || "—"}</td>
                     <td className="px-4 py-2.5 text-slate-500">{r.descripcion ?? "—"}</td>
                     <td className="px-4 py-2.5 text-right font-semibold text-emerald-700 whitespace-nowrap">{fmtGs(Number(r.monto))}</td>
@@ -218,7 +221,7 @@ export default function IngresosPage() {
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-slate-300 bg-slate-50 font-semibold">
-                  <td colSpan={6} className="px-4 py-2.5 text-right">TOTAL</td>
+                  <td colSpan={7} className="px-4 py-2.5 text-right">TOTAL</td>
                   <td className="px-4 py-2.5 text-right text-emerald-800">{fmtGs(total)}</td>
                   <td></td>
                 </tr>

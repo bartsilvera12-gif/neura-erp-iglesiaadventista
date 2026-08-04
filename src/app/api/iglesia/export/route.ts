@@ -15,6 +15,7 @@ type Movimiento = {
   filial: { id: string; nombre: string; es_junta: boolean; aplica_15_porciento: boolean;
             sector?: { id: string; nombre: string } | null } | null;
   categoria: { id: string; nombre: string } | null;
+  aportante?: { id: string; nombre: string } | null;
 };
 
 function fmtGs(n: number): string {
@@ -55,13 +56,18 @@ export async function GET(request: NextRequest) {
     const catFk = tipo === "gastos" ? "categoria_gasto_id" : "categoria_id";
     const catTable = tipo === "gastos" ? "categorias_gasto" : "categorias_ingreso";
 
+    const selectFields = tipo === "ingresos"
+      ? `id, fecha, monto, descripcion, forma_pago,
+         filial:filiales!inner(id, nombre, es_junta, aplica_15_porciento, sector:sectores(id, nombre)),
+         categoria:${catTable}(id, nombre),
+         aportante:aportantes(id, nombre)`
+      : `id, fecha, monto, descripcion, forma_pago,
+         filial:filiales!inner(id, nombre, es_junta, aplica_15_porciento, sector:sectores(id, nombre)),
+         categoria:${catTable}(id, nombre)`;
+
     let q = ctx.supabase
       .from(tabla)
-      .select(`
-        id, fecha, monto, descripcion, forma_pago,
-        filial:filiales!inner(id, nombre, es_junta, aplica_15_porciento, sector:sectores(id, nombre)),
-        categoria:${catTable}(id, nombre)
-      `)
+      .select(selectFields)
       .eq("empresa_id", ctx.auth.empresa_id)
       .order("fecha", { ascending: false });
 
@@ -81,21 +87,39 @@ export async function GET(request: NextRequest) {
     const filenameBase = `${tipo}_${(desde || "todo")}_${(hasta || "todo")}`;
 
     if (formato === "xlsx") {
+      const header = tipo === "ingresos"
+        ? ["Fecha", "Sector", "Filial", "Categoría", "Aportante", "Forma de pago", "Descripción", "Monto (Gs)"]
+        : ["Fecha", "Sector", "Filial", "Categoría", "Forma de pago", "Descripción", "Monto (Gs)"];
       const aoa: (string | number)[][] = [
-        ["Fecha", "Sector", "Filial", "Categoría", "Forma de pago", "Descripción", "Monto (Gs)"],
-        ...rows.map((r) => [
-          r.fecha,
-          r.filial?.sector?.nombre ?? (r.filial?.es_junta ? "JUNTA" : ""),
-          r.filial?.nombre ?? "",
-          r.categoria?.nombre ?? "",
-          labelFormaPago(r.forma_pago),
-          r.descripcion ?? "",
-          Number(r.monto),
-        ]),
+        header,
+        ...rows.map((r) => tipo === "ingresos"
+          ? [
+              r.fecha,
+              r.filial?.sector?.nombre ?? (r.filial?.es_junta ? "JUNTA" : ""),
+              r.filial?.nombre ?? "",
+              r.categoria?.nombre ?? "",
+              r.aportante?.nombre ?? "",
+              labelFormaPago(r.forma_pago),
+              r.descripcion ?? "",
+              Number(r.monto),
+            ]
+          : [
+              r.fecha,
+              r.filial?.sector?.nombre ?? (r.filial?.es_junta ? "JUNTA" : ""),
+              r.filial?.nombre ?? "",
+              r.categoria?.nombre ?? "",
+              labelFormaPago(r.forma_pago),
+              r.descripcion ?? "",
+              Number(r.monto),
+            ]
+        ),
       ];
       const total = rows.reduce((s, r) => s + Number(r.monto || 0), 0);
       aoa.push([]);
-      aoa.push(["", "", "", "", "", "TOTAL", total]);
+      const totalRow = tipo === "ingresos"
+        ? ["", "", "", "", "", "", "TOTAL", total]
+        : ["", "", "", "", "", "TOTAL", total];
+      aoa.push(totalRow);
       const ws = XLSX.utils.aoa_to_sheet(aoa);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, tipo);

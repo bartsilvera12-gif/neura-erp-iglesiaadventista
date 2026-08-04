@@ -11,7 +11,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params;
     const { data, error } = await ctx.supabase
       .from("ingresos")
-      .select("id, filial_id, categoria_id, fecha, monto, descripcion, forma_pago")
+      .select("id, filial_id, categoria_id, fecha, monto, descripcion, forma_pago, aportante_id")
       .eq("id", id)
       .eq("empresa_id", ctx.auth.empresa_id)
       .maybeSingle();
@@ -40,6 +40,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const descripcion = body.descripcion != null ? String(body.descripcion).trim() : "";
     const formaPagoIn = typeof body.forma_pago === "string" ? body.forma_pago : "";
     const forma_pago = ["efectivo","transferencia","deposito","cheque"].includes(formaPagoIn) ? formaPagoIn : null;
+    const aportante_id = typeof body.aportante_id === "string" && body.aportante_id ? body.aportante_id : null;
 
     if (!filial_id) return NextResponse.json(errorResponse("Elegí una filial."), { status: 400 });
     if (!categoria_id) return NextResponse.json(errorResponse("Elegí una categoría."), { status: 400 });
@@ -50,7 +51,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const { data, error } = await ctx.supabase
       .from("ingresos")
-      .update({ filial_id, categoria_id, fecha, monto, descripcion: descripcion || null, forma_pago })
+      .update({ filial_id, categoria_id, fecha, monto, descripcion: descripcion || null, forma_pago, aportante_id })
       .eq("id", id)
       .eq("empresa_id", ctx.auth.empresa_id)
       .select()
