@@ -7,6 +7,7 @@ import { fetchWithSupabaseSession } from "@/lib/api/fetch-with-supabase-session"
 import { FancySelect } from "@/components/ui/FancySelect";
 import { buildFilialOptions, type FilialLite } from "@/lib/iglesia/build-filial-options";
 import { FORMAS_PAGO } from "@/lib/iglesia/formas-pago";
+import { AportanteQuickAdd } from "@/components/iglesia/AportanteQuickAdd";
 
 type Categoria = { id: string; nombre: string };
 type Aportante = { id: string; nombre: string };
@@ -134,7 +135,13 @@ export default function EditarIngresoPage() {
           <FancySelect options={formaPagoOptions} value={formaPago} onChange={setFormaPago} placeholder="— sin especificar —" />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-semibold text-slate-700">Aportante</label>
+          <div className="mb-1 flex items-end justify-between gap-2">
+            <label className="block text-xs font-semibold text-slate-700">Aportante</label>
+            <AportanteQuickAdd onCreated={(a) => {
+              setAportantes((prev) => [...prev, a].sort((x, y) => x.nombre.localeCompare(y.nombre)));
+              setAportanteId(a.id);
+            }} />
+          </div>
           <FancySelect options={aportanteOptions} value={aportanteId} onChange={setAportanteId} placeholder="— sin aportante —" />
         </div>
         <label className="block text-sm">
