@@ -72,6 +72,10 @@ export default function EditarIngresoPage() {
     [aportantes]
   );
 
+  const categoriaSeleccionada = categorias.find((c) => c.id === categoriaId);
+  const esVoto = categoriaSeleccionada?.nombre?.toLowerCase() === "votos";
+  useEffect(() => { if (esVoto && aportanteId) setAportanteId(""); }, [esVoto, aportanteId]);
+
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -137,12 +141,15 @@ export default function EditarIngresoPage() {
         <div>
           <div className="mb-1 flex items-end justify-between gap-2">
             <label className="block text-xs font-semibold text-slate-700">Aportante</label>
-            <AportanteQuickAdd onCreated={(a) => {
-              setAportantes((prev) => [...prev, a].sort((x, y) => x.nombre.localeCompare(y.nombre)));
-              setAportanteId(a.id);
-            }} />
+            {!esVoto && (
+              <AportanteQuickAdd onCreated={(a) => {
+                setAportantes((prev) => [...prev, a].sort((x, y) => x.nombre.localeCompare(y.nombre)));
+                setAportanteId(a.id);
+              }} />
+            )}
           </div>
-          <FancySelect options={aportanteOptions} value={aportanteId} onChange={setAportanteId} placeholder="— sin aportante —" />
+          <FancySelect options={aportanteOptions} value={aportanteId} onChange={setAportanteId}
+            placeholder={esVoto ? "— no aplica para Votos —" : "— sin aportante —"} disabled={esVoto} />
         </div>
         <label className="block text-sm">
           <span className="mb-1 block text-xs font-semibold text-slate-700">Descripción</span>
