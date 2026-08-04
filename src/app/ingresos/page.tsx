@@ -23,7 +23,8 @@ type Ingreso = {
 };
 
 function fmtGs(n: number) {
-  return `${Math.round(n).toLocaleString("es-PY")} ₲`;
+  //   = non-breaking space, evita que el simbolo caiga a otra linea
+  return `${Math.round(n).toLocaleString("es-PY")} ₲`;
 }
 
 export default function IngresosPage() {
@@ -226,7 +227,7 @@ export default function IngresosPage() {
               <tfoot>
                 <tr className="border-t-2 border-slate-300 bg-slate-50 font-semibold">
                   <td colSpan={7} className="px-4 py-2.5 text-right">TOTAL</td>
-                  <td className="px-4 py-2.5 text-right text-emerald-800">{fmtGs(total)}</td>
+                  <td className="px-4 py-2.5 text-right text-emerald-800 whitespace-nowrap">{fmtGs(total)}</td>
                   <td></td>
                 </tr>
               </tfoot>

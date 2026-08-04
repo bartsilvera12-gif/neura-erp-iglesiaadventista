@@ -22,7 +22,7 @@ type Gasto = {
 };
 
 function fmtGs(n: number) {
-  return `${Math.round(n).toLocaleString("es-PY")} ₲`;
+  return `${Math.round(n).toLocaleString("es-PY")} ₲`;
 }
 
 export default function GastosPage() {
@@ -223,7 +223,7 @@ export default function GastosPage() {
               <tfoot>
                 <tr className="border-t-2 border-slate-300 bg-slate-50 font-semibold">
                   <td colSpan={6} className="px-4 py-2.5 text-right">TOTAL</td>
-                  <td className="px-4 py-2.5 text-right text-rose-800">{fmtGs(total)}</td>
+                  <td className="px-4 py-2.5 text-right text-rose-800 whitespace-nowrap">{fmtGs(total)}</td>
                   <td></td>
                 </tr>
               </tfoot>
