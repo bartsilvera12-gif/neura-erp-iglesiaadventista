@@ -19,6 +19,18 @@ function fmtGs(n: number): string {
   return Math.round(n).toLocaleString("es-PY");
 }
 
+/** Reemplaza chars fuera de latin-1 (WinAnsi) por equivalentes ASCII. */
+function ansiSafe(s: string): string {
+  return String(s)
+    .replace(/…/g, "...")
+    .replace(/→/g, "->")
+    .replace(/—/g, "-")
+    .replace(/–/g, "-")
+    .replace(/[""]/g, '"')
+    .replace(/['']/g, "'")
+    .replace(/[^\x00-\xff]/g, "?"); // ultima red: cualquier otro no-latin1
+}
+
 /**
  * GET /api/iglesia/export?tipo=ingresos|gastos&formato=pdf|xlsx&desde=&hasta=&filial=&categoria=&sector=
  * Devuelve el archivo descargable con los mismos filtros que la lista.
@@ -63,7 +75,7 @@ export async function GET(request: NextRequest) {
 
     const rows = (data ?? []) as unknown as Movimiento[];
     const titulo = tipo === "gastos" ? "Reporte de Gastos" : "Reporte de Ingresos";
-    const rangoTxt = `${desde || "…"} → ${hasta || "…"}`;
+    const rangoTxt = `${desde || "inicio"} a ${hasta || "hoy"}`;
     const filenameBase = `${tipo}_${(desde || "todo")}_${(hasta || "todo")}`;
 
     if (formato === "xlsx") {
@@ -102,7 +114,7 @@ export async function GET(request: NextRequest) {
     let y = page.getHeight() - margin;
 
     const drawText = (t: string, x: number, yy: number, size = 9, f: PDFFont = font) => {
-      page.drawText(t, { x, y: yy, size, font: f, color: rgb(0, 0, 0) });
+      page.drawText(ansiSafe(t), { x, y: yy, size, font: f, color: rgb(0, 0, 0) });
     };
     const newPageIfNeeded = () => {
       if (y < margin + 40) {
@@ -154,7 +166,7 @@ export async function GET(request: NextRequest) {
       for (let i = 0; i < cols.length; i++) {
         const c = cols[i]!;
         const txt = String(cells[i] ?? "");
-        const clipped = txt.length > 24 ? txt.slice(0, 23) + "…" : txt;
+        const clipped = txt.length > 24 ? txt.slice(0, 23) + "..." : txt;
         if (c.align === "right") {
           const w = font.widthOfTextAtSize(clipped, 8);
           drawText(clipped, c.x + c.w - w, y, 8);
