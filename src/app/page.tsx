@@ -37,12 +37,31 @@ function today(): string {
 
 type RangoPreset = "hoy" | "7d" | "30d" | "mes" | "año";
 
+const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+function pad2(n: number) { return String(n).padStart(2, "0"); }
+function lastDayOfMonth(y: number, m: number) { return new Date(y, m, 0).getDate(); } // m: 1-12
+
 export default function DashboardIglesia() {
   const [preset, setPreset] = useState<RangoPreset>("mes");
   const [desde, setDesde] = useState(firstOfMonth());
   const [hasta, setHasta] = useState(today());
   const [data, setData] = useState<Data | null>(null);
   const [cargando, setCargando] = useState(true);
+
+  const now = new Date();
+  const [mesSel, setMesSel] = useState<number>(now.getMonth() + 1);
+  const [anioSel, setAnioSel] = useState<number>(now.getFullYear());
+  const aniosDisponibles = Array.from({ length: 6 }, (_, i) => now.getFullYear() - i);
+
+  function irAlMes(m: number, y: number) {
+    setMesSel(m);
+    setAnioSel(y);
+    const d = `${y}-${pad2(m)}-01`;
+    const h = `${y}-${pad2(m)}-${pad2(lastDayOfMonth(y, m))}`;
+    setDesde(d);
+    setHasta(h);
+    setPreset("mes");
+  }
 
   function aplicarPreset(p: RangoPreset) {
     setPreset(p);
@@ -89,6 +108,19 @@ export default function DashboardIglesia() {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Selector mes + año */}
+      <div className="flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-white p-3 text-xs">
+        <span className="mr-1 text-slate-500">Ir al mes:</span>
+        <select value={mesSel} onChange={(e) => irAlMes(Number(e.target.value), anioSel)}
+          className="rounded-md border border-slate-300 px-2 py-1 text-sm">
+          {MESES.map((n, i) => <option key={i} value={i + 1}>{n}</option>)}
+        </select>
+        <select value={anioSel} onChange={(e) => irAlMes(mesSel, Number(e.target.value))}
+          className="rounded-md border border-slate-300 px-2 py-1 text-sm">
+          {aniosDisponibles.map((y) => <option key={y} value={y}>{y}</option>)}
+        </select>
       </div>
 
       {/* Rango custom */}
