@@ -25,6 +25,7 @@ export default function EditarIngresoPage() {
   const [fecha, setFecha] = useState("");
   const [monto, setMonto] = useState("");
   const [descripcion, setDescripcion] = useState("");
+  const [numeroFactura, setNumeroFactura] = useState("");
   const [formaPago, setFormaPago] = useState("");
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
@@ -52,6 +53,7 @@ export default function EditarIngresoPage() {
         setFecha(iJ.data.fecha ?? "");
         setMonto(String(iJ.data.monto ?? ""));
         setDescripcion(iJ.data.descripcion ?? "");
+        setNumeroFactura(iJ.data.numero_factura ?? "");
         setFormaPago(iJ.data.forma_pago ?? "");
       }
       setCargando(false);
@@ -93,6 +95,7 @@ export default function EditarIngresoPage() {
         descripcion,
         forma_pago: formaPago,
         aportante_id: aportanteId,
+        numero_factura: numeroFactura,
       }),
     });
     const j = await res.json();
@@ -151,6 +154,11 @@ export default function EditarIngresoPage() {
           <FancySelect options={aportanteOptions} value={aportanteId} onChange={setAportanteId}
             placeholder={esVoto ? "— no aplica para Votos —" : "— sin aportante —"} disabled={esVoto} />
         </div>
+        <label className="block text-sm">
+          <span className="mb-1 block text-xs font-semibold text-slate-700">N° de factura <span className="font-normal text-slate-400">(opcional)</span></span>
+          <input value={numeroFactura} onChange={(e) => setNumeroFactura(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-[#4FAEB2] focus:outline-none focus:ring-2 focus:ring-[#4FAEB2]/20" />
+        </label>
         <label className="block text-sm">
           <span className="mb-1 block text-xs font-semibold text-slate-700">Descripción</span>
           <textarea rows={2} value={descripcion} onChange={(e) => setDescripcion(e.target.value)}

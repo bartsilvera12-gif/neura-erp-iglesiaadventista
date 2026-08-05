@@ -13,6 +13,7 @@ type Movimiento = {
   monto: number;
   descripcion: string | null;
   forma_pago: string | null;
+  numero_factura: string | null;
   filial: { id: string; nombre: string; es_junta: boolean; aplica_15_porciento: boolean;
             sector?: { id: string; nombre: string } | null } | null;
   categoria: { id: string; nombre: string } | null;
@@ -67,11 +68,11 @@ export async function GET(request: NextRequest) {
     const catTable = tipo === "gastos" ? "categorias_gasto" : "categorias_ingreso";
 
     const selectFields = tipo === "ingresos"
-      ? `id, fecha, monto, descripcion, forma_pago,
+      ? `id, fecha, monto, descripcion, forma_pago, numero_factura,
          filial:filiales!inner(id, nombre, es_junta, aplica_15_porciento, sector:sectores(id, nombre)),
          categoria:${catTable}(id, nombre),
          aportante:aportantes(id, nombre)`
-      : `id, fecha, monto, descripcion, forma_pago,
+      : `id, fecha, monto, descripcion, forma_pago, numero_factura,
          filial:filiales!inner(id, nombre, es_junta, aplica_15_porciento, sector:sectores(id, nombre)),
          categoria:${catTable}(id, nombre)`;
 
@@ -112,8 +113,8 @@ export async function GET(request: NextRequest) {
 
     if (formato === "xlsx") {
       const header = tipo === "ingresos"
-        ? ["Fecha", "Sector", "Filial", "Categoría", "Aportante", "Forma de pago", "Descripción", "Monto (Gs)"]
-        : ["Fecha", "Sector", "Filial", "Categoría", "Forma de pago", "Descripción", "Monto (Gs)"];
+        ? ["Fecha", "Sector", "Filial", "Categoría", "Aportante", "Forma de pago", "N° Factura", "Descripción", "Monto (Gs)"]
+        : ["Fecha", "Sector", "Filial", "Categoría", "Forma de pago", "N° Factura", "Descripción", "Monto (Gs)"];
       const aoa: (string | number)[][] = [
         header,
         ...rows.map((r) => tipo === "ingresos"
@@ -124,6 +125,7 @@ export async function GET(request: NextRequest) {
               toStdNombre(r.categoria?.nombre ?? ""),
               toStdNombre(r.aportante?.nombre ?? ""),
               labelFormaPago(r.forma_pago),
+              r.numero_factura ?? "",
               r.descripcion ?? "",
               Number(r.monto),
             ]
@@ -133,6 +135,7 @@ export async function GET(request: NextRequest) {
               toStdNombre(r.filial?.nombre ?? ""),
               toStdNombre(r.categoria?.nombre ?? ""),
               labelFormaPago(r.forma_pago),
+              r.numero_factura ?? "",
               r.descripcion ?? "",
               Number(r.monto),
             ]
@@ -141,8 +144,8 @@ export async function GET(request: NextRequest) {
       const total = rows.reduce((s, r) => s + Number(r.monto || 0), 0);
       aoa.push([]);
       const totalRow = tipo === "ingresos"
-        ? ["", "", "", "", "", "", "TOTAL", total]
-        : ["", "", "", "", "", "TOTAL", total];
+        ? ["", "", "", "", "", "", "", "TOTAL", total]
+        : ["", "", "", "", "", "", "TOTAL", total];
       aoa.push(totalRow);
       const ws = XLSX.utils.aoa_to_sheet(aoa);
       const wb = XLSX.utils.book_new();

@@ -23,6 +23,7 @@ export default function NuevoGastoPage() {
   const [fecha, setFecha] = useState(() => new Date().toISOString().slice(0, 10));
   const [monto, setMonto] = useState("");
   const [descripcion, setDescripcion] = useState("");
+  const [numeroFactura, setNumeroFactura] = useState("");
   const [formaPago, setFormaPago] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +47,7 @@ export default function NuevoGastoPage() {
           setCategoriaId(dJ.data.categoria_gasto_id ?? "");
           setMonto(String(dJ.data.monto ?? ""));
           setDescripcion(dJ.data.descripcion ?? "");
+          setNumeroFactura(dJ.data.numero_factura ?? "");
           setFormaPago(dJ.data.forma_pago ?? "");
         }
       }
@@ -84,6 +86,7 @@ export default function NuevoGastoPage() {
       body: JSON.stringify({
         filial_id: filialId, categoria_gasto_id: categoriaId, fecha,
         monto: Number(monto), descripcion, forma_pago: formaPago,
+        numero_factura: numeroFactura,
       }),
     });
     const j = await res.json();
@@ -131,6 +134,11 @@ export default function NuevoGastoPage() {
           <label className="mb-1 block text-xs font-semibold text-slate-700">Forma de pago</label>
           <FancySelect options={formaPagoOptions} value={formaPago} onChange={setFormaPago} placeholder="— sin especificar —" />
         </div>
+        <label className="block text-sm">
+          <span className="mb-1 block text-xs font-semibold text-slate-700">N° de factura <span className="font-normal text-slate-400">(opcional)</span></span>
+          <input value={numeroFactura} onChange={(e) => setNumeroFactura(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-[#4FAEB2] focus:outline-none focus:ring-2 focus:ring-[#4FAEB2]/20" />
+        </label>
         <label className="block text-sm">
           <span className="mb-1 block text-xs font-semibold text-slate-700">Descripción</span>
           <textarea rows={2} value={descripcion} onChange={(e) => setDescripcion(e.target.value)}

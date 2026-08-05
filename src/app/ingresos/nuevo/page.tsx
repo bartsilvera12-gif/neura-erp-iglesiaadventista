@@ -27,6 +27,7 @@ export default function NuevoIngresoPage() {
   const [fecha, setFecha] = useState(() => new Date().toISOString().slice(0, 10));
   const [monto, setMonto] = useState("");
   const [descripcion, setDescripcion] = useState("");
+  const [numeroFactura, setNumeroFactura] = useState("");
   const [formaPago, setFormaPago] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +55,7 @@ export default function NuevoIngresoPage() {
           setAportanteId(dJ.data.aportante_id ?? "");
           setMonto(String(dJ.data.monto ?? ""));
           setDescripcion(dJ.data.descripcion ?? "");
+          setNumeroFactura(dJ.data.numero_factura ?? "");
           setFormaPago(dJ.data.forma_pago ?? "");
           // fecha queda en hoy — es lo tipico al duplicar
         }
@@ -90,6 +92,7 @@ export default function NuevoIngresoPage() {
         filial_id: filialId, categoria_id: categoriaId, fecha,
         monto: Number(monto), descripcion, forma_pago: formaPago,
         aportante_id: aportanteId,
+        numero_factura: numeroFactura,
       }),
     });
     const j = await res.json();
@@ -149,6 +152,11 @@ export default function NuevoIngresoPage() {
           <FancySelect options={aportanteOptions} value={aportanteId} onChange={setAportanteId}
             placeholder={esVoto ? "— no aplica para Votos —" : "— sin aportante —"} disabled={esVoto} />
         </div>
+        <label className="block text-sm">
+          <span className="mb-1 block text-xs font-semibold text-slate-700">N° de factura <span className="font-normal text-slate-400">(opcional)</span></span>
+          <input value={numeroFactura} onChange={(e) => setNumeroFactura(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-[#4FAEB2] focus:outline-none focus:ring-2 focus:ring-[#4FAEB2]/20" />
+        </label>
         <label className="block text-sm">
           <span className="mb-1 block text-xs font-semibold text-slate-700">Descripción</span>
           <textarea rows={2} value={descripcion} onChange={(e) => setDescripcion(e.target.value)}

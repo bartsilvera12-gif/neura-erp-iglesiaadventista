@@ -80,6 +80,7 @@ export async function POST(request: NextRequest) {
       const filialRaw = getCol(row, ["filial"]);
       const catRaw = getCol(row, ["categor"]);
       const formaRaw = getCol(row, ["forma"]);
+      const facturaRaw = getCol(row, ["n° factura", "n factura", "nº factura", "factura"]);
       const montoRaw = getCol(row, ["monto"]);
       const descRaw = getCol(row, ["descrip"]);
 
@@ -125,6 +126,7 @@ export async function POST(request: NextRequest) {
       }
 
       const descripcion = String(descRaw ?? "").trim() || null;
+      const numero_factura = String(facturaRaw ?? "").trim() || null;
 
       if (tipo === "ingresos") {
         // Aportante: opcional. Si viene y no existe, se crea.
@@ -162,7 +164,7 @@ export async function POST(request: NextRequest) {
             filial_id: filial.id,
             categoria_id: categoriaId,
             aportante_id,
-            fecha, monto, descripcion, forma_pago,
+            fecha, monto, descripcion, forma_pago, numero_factura,
             usuario_id: ctx.auth.usuarioCatalogId ?? null,
           });
         if (ins.error) { result.errores.push({ fila: filaExcel, error: ins.error.message }); continue; }
@@ -176,7 +178,7 @@ export async function POST(request: NextRequest) {
             filial_id: filial.id,
             categoria_gasto_id: categoriaId,
             categoria: (catRow.data?.nombre as string | undefined) ?? null,
-            fecha, monto, descripcion, forma_pago,
+            fecha, monto, descripcion, forma_pago, numero_factura,
             tipo: "variable", recurrente: false, descuenta_caja: false,
           });
         if (ins.error) { result.errores.push({ fila: filaExcel, error: ins.error.message }); continue; }
