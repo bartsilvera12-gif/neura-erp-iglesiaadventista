@@ -195,8 +195,8 @@ export default function GastosPage() {
                   <tr key={r.id} className="hover:bg-slate-50">
                     <td className="px-4 py-2.5 whitespace-nowrap">{r.fecha}</td>
                     <td className="px-4 py-2.5 text-slate-600">{r.filial?.sector?.nombre ?? (r.filial?.es_junta ? "JUNTA" : "")}</td>
-                    <td className="px-4 py-2.5 font-medium">{r.filial?.nombre ?? "—"}</td>
-                    <td className="px-4 py-2.5 text-slate-600">{r.categoria?.nombre ?? "—"}</td>
+                    <td className="px-4 py-2.5 font-medium min-w-[120px] break-words">{r.filial?.nombre ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-slate-600 min-w-[180px] break-words">{r.categoria?.nombre ?? "—"}</td>
                     <td className="px-4 py-2.5 text-slate-500">{labelFormaPago(r.forma_pago) || "—"}</td>
                     <td className="px-4 py-2.5 text-slate-500 font-mono text-xs">{r.numero_factura ?? "—"}</td>
                     <td className="px-4 py-2.5 text-slate-500">{r.descripcion ?? "—"}</td>

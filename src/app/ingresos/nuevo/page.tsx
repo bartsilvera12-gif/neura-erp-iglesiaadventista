@@ -178,11 +178,16 @@ export default function NuevoIngresoPage() {
             className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-[#4FAEB2] focus:outline-none focus:ring-2 focus:ring-[#4FAEB2]/20" />
         </label>
         {error && <p className="text-sm text-red-600">{error}</p>}
-        <div className="flex justify-end gap-2 pt-2">
+        {okMsg && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{okMsg}</p>}
+        <div className="flex flex-wrap justify-end gap-2 pt-2">
           <Link href="/ingresos" className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Cancelar</Link>
+          <button type="button" disabled={guardando} onClick={() => guardar(true)}
+            className="rounded-xl border border-[#4FAEB2] bg-white px-4 py-2 text-sm font-semibold text-[#3F8E91] shadow-sm hover:bg-[#4FAEB2]/10 active:scale-95 disabled:opacity-50">
+            {guardando ? "Guardando…" : "Guardar y agregar otro"}
+          </button>
           <button disabled={guardando} type="submit"
             className="rounded-xl bg-[#4FAEB2] px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-[#4FAEB2]/25 hover:bg-[#3F8E91] active:scale-95 disabled:opacity-50">
-            {guardando ? "Guardando…" : "Guardar"}
+            {guardando ? "Guardando…" : "Guardar y volver"}
           </button>
         </div>
       </form>

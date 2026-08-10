@@ -202,6 +202,7 @@ export function FancySelect({
         aria-expanded={open}
         aria-controls={open ? listboxId : undefined}
         aria-label={ariaLabel}
+        title={displayValue ?? placeholder}
         disabled={disabled}
         onClick={toggleMenu}
         onKeyDown={onKeyDown}
