@@ -27,6 +27,7 @@ export default function NuevoGastoPage() {
   const [formaPago, setFormaPago] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [okMsg, setOkMsg] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -74,9 +75,9 @@ export default function NuevoGastoPage() {
     if (categoriaId && !categorias.some((c) => c.id === categoriaId)) setCategoriaId("");
   }, [categorias, categoriaId]);
 
-  async function guardar(e: React.FormEvent) {
-    e.preventDefault();
+  async function guardar(seguirCargando: boolean) {
     setError(null);
+    setOkMsg(null);
     if (!filialId) return setError("Elegí una filial.");
     if (!categoriaId) return setError("Elegí una categoría.");
     setGuardando(true);
@@ -92,7 +93,18 @@ export default function NuevoGastoPage() {
     const j = await res.json();
     setGuardando(false);
     if (!j?.success) return setError(j?.error || "No se pudo guardar.");
-    router.push("/gastos");
+    if (seguirCargando) {
+      const cat = categoriasAll.find((c) => c.id === categoriaId);
+      setOkMsg(`✓ Guardado: ${cat?.nombre ?? "gasto"} · ${Number(monto).toLocaleString("es-PY")} ₲`);
+      setCategoriaId("");
+      setMonto("");
+      setDescripcion("");
+      setNumeroFactura("");
+      setFormaPago("");
+      setTimeout(() => setOkMsg(null), 4000);
+    } else {
+      router.push("/gastos");
+    }
   }
 
   return (
@@ -108,7 +120,7 @@ export default function NuevoGastoPage() {
         <Link href="/gastos" className="text-xs text-slate-500 hover:underline">← Volver</Link>
       </div>
 
-      <form onSubmit={guardar} className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm ring-1 ring-[#4FAEB2]/10">
+      <form onSubmit={(e) => { e.preventDefault(); guardar(false); }} className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm ring-1 ring-[#4FAEB2]/10">
         <div>
           <label className="mb-1 block text-xs font-semibold text-slate-700">Filial *</label>
           <FancySelect options={filialOptions} value={filialId} onChange={setFilialId} placeholder="Elegí una filial" />

@@ -31,6 +31,7 @@ export default function NuevoIngresoPage() {
   const [formaPago, setFormaPago] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [okMsg, setOkMsg] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -79,9 +80,9 @@ export default function NuevoIngresoPage() {
   const esVoto = categoriaSeleccionada?.nombre?.toLowerCase() === "votos";
   useEffect(() => { if (esVoto && aportanteId) setAportanteId(""); }, [esVoto, aportanteId]);
 
-  async function guardar(e: React.FormEvent) {
-    e.preventDefault();
+  async function guardar(seguirCargando: boolean) {
     setError(null);
+    setOkMsg(null);
     if (!filialId) return setError("Elegí una filial.");
     if (!categoriaId) return setError("Elegí una categoría.");
     setGuardando(true);
@@ -98,7 +99,21 @@ export default function NuevoIngresoPage() {
     const j = await res.json();
     setGuardando(false);
     if (!j?.success) return setError(j?.error || "No se pudo guardar.");
-    router.push("/ingresos");
+    if (seguirCargando) {
+      // Mantiene filial y fecha; limpia todo lo demás para el proximo ingreso
+      const cat = categorias.find((c) => c.id === categoriaId);
+      const apt = aportantes.find((a) => a.id === aportanteId);
+      setOkMsg(`✓ Guardado: ${cat?.nombre ?? "ingreso"}${apt ? " · " + apt.nombre : ""} · ${Number(monto).toLocaleString("es-PY")} ₲`);
+      setCategoriaId("");
+      setAportanteId("");
+      setMonto("");
+      setDescripcion("");
+      setNumeroFactura("");
+      setFormaPago("");
+      setTimeout(() => setOkMsg(null), 4000);
+    } else {
+      router.push("/ingresos");
+    }
   }
 
   return (
@@ -114,7 +129,7 @@ export default function NuevoIngresoPage() {
         <Link href="/ingresos" className="text-xs text-slate-500 hover:underline">← Volver</Link>
       </div>
 
-      <form onSubmit={guardar} className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm ring-1 ring-[#4FAEB2]/10">
+      <form onSubmit={(e) => { e.preventDefault(); guardar(false); }} className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm ring-1 ring-[#4FAEB2]/10">
         <div>
           <label className="mb-1 block text-xs font-semibold text-slate-700">Filial *</label>
           <FancySelect options={filialOptions} value={filialId} onChange={setFilialId} placeholder="Elegí una filial" />
