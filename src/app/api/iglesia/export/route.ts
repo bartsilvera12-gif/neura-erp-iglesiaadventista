@@ -6,6 +6,7 @@ import { errorResponse } from "@/lib/api/response";
 import { API_ERRORS } from "@/lib/api/errors";
 import { PDFDocument, StandardFonts, rgb, type PDFPage, type PDFFont, type RGB } from "pdf-lib";
 import ExcelJS from "exceljs";
+import sharp from "sharp";
 import { labelFormaPago } from "@/lib/iglesia/formas-pago";
 import { toStdNombre } from "@/lib/iglesia/normalize";
 
@@ -53,6 +54,59 @@ function slugify(s: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "");
+}
+
+function xmlEscape(s: string): string {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+/**
+ * Renderiza un grafico de barras horizontal como PNG (via SVG + sharp).
+ * Devuelve buffer PNG listo para embeber en Excel.
+ */
+async function chartBarrasPng(
+  items: { label: string; value: number }[],
+  opts: { titulo: string; colorHex: string; width?: number }
+): Promise<Buffer> {
+  const width = opts.width ?? 900;
+  const barsShown = items.slice(0, 12);
+  const total = items.reduce((s, i) => s + i.value, 0);
+  const rowH = 28;
+  const headerH = 46;
+  const paddingBottom = 20;
+  const height = headerH + barsShown.length * rowH + paddingBottom;
+  const labelW = 200;
+  const valueW = 130;
+  const pctW = 60;
+  const barX = labelW + 10;
+  const barMaxW = width - labelW - valueW - pctW - 30;
+  const maxVal = Math.max(...barsShown.map((i) => i.value), 1);
+
+  const bars = barsShown.map((it, idx) => {
+    const y = headerH + idx * rowH;
+    const w = Math.max(2, (it.value / maxVal) * barMaxW);
+    const pct = total > 0 ? (it.value / total) * 100 : 0;
+    const label = xmlEscape(it.label.length > 26 ? it.label.slice(0, 25) + "..." : it.label);
+    const valStr = xmlEscape(Math.round(it.value).toLocaleString("es-PY"));
+    const bgRect = idx % 2 === 1 ? `<rect x="0" y="${y - 4}" width="${width}" height="${rowH}" fill="#F8FAFC"/>` : "";
+    return `
+      ${bgRect}
+      <text x="10" y="${y + 14}" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#334155">${label}</text>
+      <rect x="${barX}" y="${y + 5}" width="${barMaxW}" height="14" fill="#E2E8F0" rx="2"/>
+      <rect x="${barX}" y="${y + 5}" width="${w}" height="14" fill="#${opts.colorHex}" rx="2"/>
+      <text x="${width - valueW - pctW - 10}" y="${y + 15}" font-family="Helvetica" font-size="10" fill="#64748B" text-anchor="end">${pct.toFixed(1)}%</text>
+      <text x="${width - 10}" y="${y + 15}" font-family="Helvetica" font-size="11" font-weight="bold" fill="#0B3A3D" text-anchor="end">${valStr}</text>
+    `;
+  }).join("\n");
+
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+  <rect x="0" y="0" width="${width}" height="${headerH - 4}" fill="#0B3A3D"/>
+  <text x="16" y="28" font-family="Helvetica, Arial, sans-serif" font-size="14" font-weight="bold" fill="#FFFFFF">${xmlEscape(opts.titulo)}</text>
+  ${bars}
+</svg>`;
+
+  return await sharp(Buffer.from(svg)).png().toBuffer();
 }
 
 function agrupar(rows: Movimiento[], keyFn: (r: Movimiento) => string | null): { key: string; total: number; count: number }[] {
@@ -154,7 +208,7 @@ export async function GET(request: NextRequest) {
 }
 
 // ============================================================================
-// EXCEL — con estilos, hoja de resumen, filtro automatico
+// EXCEL — Portada + Datos con estilos + Resumen con charts embebidos
 // ============================================================================
 async function buildExcel(tipo: "ingresos" | "gastos", rows: Movimiento[], f: { sector: string | null; filial: string | null; categoria: string | null; desde: string | null; hasta: string | null }): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
@@ -163,6 +217,74 @@ async function buildExcel(tipo: "ingresos" | "gastos", rows: Movimiento[], f: { 
 
   const titulo = tipo === "gastos" ? "REPORTE DE GASTOS" : "REPORTE DE INGRESOS";
   const accent = tipo === "gastos" ? "B91C1C" : "047857"; // rose-800 / emerald-800
+  const accentHex = tipo === "gastos" ? "B91C1C" : "0EA37B";
+
+  // ============ Datos para resumenes / charts ============
+  const totalGeneral = rows.reduce((s, r) => s + Number(r.monto || 0), 0);
+  const porCategoria = agrupar(rows, (r) => r.categoria?.nombre ?? null);
+  const porFilial = agrupar(rows, (r) => r.filial?.nombre ?? null);
+  const porSector = agrupar(rows, (r) => r.filial?.sector?.nombre ?? (r.filial?.es_junta ? "JUNTA" : null));
+  const porFormaPago = agrupar(rows, (r) => r.forma_pago ? labelFormaPago(r.forma_pago) : "Sin especificar");
+
+  // ================== HOJA 0: PORTADA ==================
+  const wsPortada = wb.addWorksheet("Portada", { views: [{ showGridLines: false }] });
+  wsPortada.columns = [{ width: 4 }, { width: 30 }, { width: 30 }, { width: 25 }, { width: 4 }];
+
+  // Banda superior
+  wsPortada.mergeCells("A1", "E4");
+  const bandaCell = wsPortada.getCell("A1");
+  bandaCell.value = "";
+  bandaCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF" + COLOR_PRIMARY } };
+
+  // Titulo empresa
+  wsPortada.mergeCells("B2", "D2");
+  const titEmp = wsPortada.getCell("B2");
+  titEmp.value = EMPRESA_NOMBRE;
+  titEmp.font = { name: "Calibri", size: 20, bold: true, color: { argb: "FFFFFFFF" } };
+  titEmp.alignment = { horizontal: "center", vertical: "middle" };
+  wsPortada.getRow(2).height = 32;
+
+  wsPortada.mergeCells("B3", "D3");
+  const titRep = wsPortada.getCell("B3");
+  titRep.value = titulo;
+  titRep.font = { name: "Calibri", size: 14, color: { argb: "FF" + COLOR_ACCENT } };
+  titRep.alignment = { horizontal: "center", vertical: "middle" };
+  wsPortada.getRow(3).height = 20;
+
+  // Bloque info
+  const infoRow = 6;
+  const putInfo = (row: number, label: string, value: string) => {
+    wsPortada.mergeCells(row, 2, row, 3);
+    wsPortada.getCell(row, 2).value = label;
+    wsPortada.getCell(row, 2).font = { size: 10, bold: true, color: { argb: "FF64748B" } };
+    wsPortada.getCell(row, 2).alignment = { horizontal: "right", indent: 1 };
+    wsPortada.getCell(row, 4).value = value;
+    wsPortada.getCell(row, 4).font = { size: 11, color: { argb: "FF0F172A" } };
+  };
+  putInfo(infoRow, "Período:", `${f.desde || "inicio"} al ${f.hasta || "hoy"}`);
+  putInfo(infoRow + 1, "Sector:", f.sector || "Todos");
+  putInfo(infoRow + 2, "Filial:", f.filial || "Todas");
+  putInfo(infoRow + 3, "Categoría:", f.categoria || "Todas");
+  putInfo(infoRow + 5, "Generado:", new Date().toISOString().slice(0, 19).replace("T", " "));
+
+  // Bloque totales grandes
+  const bigRow = infoRow + 8;
+  wsPortada.mergeCells(bigRow, 2, bigRow, 4);
+  wsPortada.getCell(bigRow, 2).value = "TOTAL GENERAL";
+  wsPortada.getCell(bigRow, 2).font = { size: 11, bold: true, color: { argb: "FF64748B" } };
+  wsPortada.getCell(bigRow, 2).alignment = { horizontal: "center" };
+  wsPortada.mergeCells(bigRow + 1, 2, bigRow + 1, 4);
+  wsPortada.getCell(bigRow + 1, 2).value = totalGeneral;
+  wsPortada.getCell(bigRow + 1, 2).numFmt = '#,##0" Gs"';
+  wsPortada.getCell(bigRow + 1, 2).font = { size: 26, bold: true, color: { argb: "FF" + accent } };
+  wsPortada.getCell(bigRow + 1, 2).alignment = { horizontal: "center" };
+  wsPortada.getRow(bigRow + 1).height = 36;
+
+  // Cantidad de movimientos
+  wsPortada.mergeCells(bigRow + 3, 2, bigRow + 3, 4);
+  wsPortada.getCell(bigRow + 3, 2).value = `${rows.length} movimiento${rows.length === 1 ? "" : "s"} en el período`;
+  wsPortada.getCell(bigRow + 3, 2).font = { size: 11, color: { argb: "FF64748B" }, italic: true };
+  wsPortada.getCell(bigRow + 3, 2).alignment = { horizontal: "center" };
 
   // ================== HOJA 1: DATOS ==================
   const ws = wb.addWorksheet("Datos", { views: [{ state: "frozen", ySplit: 6 }] });
@@ -261,63 +383,73 @@ async function buildExcel(tipo: "ingresos" | "gastos", rows: Movimiento[], f: { 
   // Autofilter sobre la tabla
   ws.autoFilter = { from: { row: 6, column: 1 }, to: { row: 6 + rows.length, column: header.length } };
 
-  // ================== HOJA 2: RESUMEN ==================
-  const wsSum = wb.addWorksheet("Resumen");
-  wsSum.columns = [{ width: 35 }, { width: 15 }, { width: 15 }];
+  // ================== HOJA 2: RESUMEN (con charts embebidos) ==================
+  const wsSum = wb.addWorksheet("Resumen", { views: [{ showGridLines: false }] });
+  wsSum.columns = [{ width: 4 }, { width: 32 }, { width: 20 }, { width: 12 }];
 
-  let cursor = 1;
-  const putSection = (titulo: string, headers: string[], data: { key: string; total: number; count: number }[]) => {
-    // Titulo de seccion
-    wsSum.mergeCells(cursor, 1, cursor, 3);
-    const t = wsSum.getCell(cursor, 1);
-    t.value = titulo;
-    t.font = { bold: true, size: 12, color: { argb: "FFFFFFFF" } };
-    t.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF" + COLOR_PRIMARY } };
-    t.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
-    wsSum.getRow(cursor).height = 20;
-    cursor++;
+  let cursor = 2;
+  const putSection = async (titulo: string, data: { key: string; total: number; count: number }[]) => {
+    if (data.length === 0) return;
 
+    // Chart embebido arriba
+    const png = await chartBarrasPng(
+      data.map((d) => ({ label: toStdNombre(d.key), value: d.total })),
+      { titulo, colorHex: accentHex, width: 900 }
+    );
+    const imgId = wb.addImage({ buffer: png, extension: "png" });
+    const chartRows = Math.max(6, Math.min(14, data.length + 2));
+    wsSum.addImage(imgId, { tl: { col: 1, row: cursor - 1 }, ext: { width: 720, height: chartRows * 20 } });
+    cursor += chartRows + 1;
+
+    // Tabla debajo del chart
     // Headers
-    headers.forEach((h, i) => {
-      const c = wsSum.getCell(cursor, i + 1);
+    const hdrLabels = ["Concepto", "Monto (Gs)", "%"];
+    hdrLabels.forEach((h, i) => {
+      const c = wsSum.getCell(cursor, i + 2);
       c.value = h;
       c.font = { bold: true, size: 10, color: { argb: "FFFFFFFF" } };
-      c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF" + accent } };
-      c.alignment = { horizontal: i === 0 ? "left" : "right" };
+      c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF" + COLOR_PRIMARY } };
+      c.alignment = { horizontal: i === 0 ? "left" : "right", indent: i === 0 ? 1 : 0 };
+      c.border = { bottom: { style: "medium", color: { argb: "FF" + COLOR_ACCENT } } };
     });
+    wsSum.getRow(cursor).height = 20;
     cursor++;
 
     // Data
     const total = data.reduce((s, d) => s + d.total, 0);
     data.forEach((d, idx) => {
       const r = wsSum.getRow(cursor);
-      r.getCell(1).value = toStdNombre(d.key);
-      r.getCell(2).value = d.total;
-      r.getCell(2).numFmt = '#,##0" Gs"';
-      r.getCell(2).alignment = { horizontal: "right" };
-      r.getCell(3).value = total > 0 ? d.total / total : 0;
-      r.getCell(3).numFmt = "0.0%";
+      r.getCell(2).value = toStdNombre(d.key);
+      r.getCell(2).font = { size: 10 };
+      r.getCell(2).alignment = { horizontal: "left", indent: 1 };
+      r.getCell(3).value = d.total;
+      r.getCell(3).numFmt = '#,##0" Gs"';
       r.getCell(3).alignment = { horizontal: "right" };
-      if (idx % 2 === 1) r.eachCell((c) => c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF8FAFC" } });
+      r.getCell(4).value = total > 0 ? d.total / total : 0;
+      r.getCell(4).numFmt = "0.0%";
+      r.getCell(4).alignment = { horizontal: "right" };
+      r.getCell(4).font = { color: { argb: "FF64748B" } };
+      if (idx % 2 === 1) [2, 3, 4].forEach((col) => r.getCell(col).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF8FAFC" } });
       cursor++;
     });
 
-    // Total de seccion
+    // Total
     const rt = wsSum.getRow(cursor);
-    rt.getCell(1).value = "Total";
-    rt.getCell(1).font = { bold: true };
-    rt.getCell(2).value = total;
-    rt.getCell(2).numFmt = '#,##0" Gs"';
-    rt.getCell(2).font = { bold: true, color: { argb: "FF" + accent } };
-    rt.getCell(2).alignment = { horizontal: "right" };
-    rt.eachCell((c) => c.border = { top: { style: "thin" } });
-    cursor += 2;
+    rt.getCell(2).value = "TOTAL";
+    rt.getCell(2).font = { bold: true, size: 10 };
+    rt.getCell(2).alignment = { horizontal: "left", indent: 1 };
+    rt.getCell(3).value = total;
+    rt.getCell(3).numFmt = '#,##0" Gs"';
+    rt.getCell(3).font = { bold: true, size: 11, color: { argb: "FF" + accent } };
+    rt.getCell(3).alignment = { horizontal: "right" };
+    [2, 3, 4].forEach((col) => rt.getCell(col).border = { top: { style: "medium", color: { argb: "FF" + COLOR_PRIMARY } } });
+    cursor += 3;
   };
 
-  putSection("TOTAL POR CATEGORIA", ["Categoría", "Monto", "%"], agrupar(rows, (r) => r.categoria?.nombre ?? null));
-  putSection("TOTAL POR FILIAL", ["Filial", "Monto", "%"], agrupar(rows, (r) => r.filial?.nombre ?? null));
-  putSection("TOTAL POR SECTOR", ["Sector", "Monto", "%"], agrupar(rows, (r) => r.filial?.sector?.nombre ?? (r.filial?.es_junta ? "JUNTA" : null)));
-  putSection("TOTAL POR FORMA DE PAGO", ["Forma de pago", "Monto", "%"], agrupar(rows, (r) => r.forma_pago ? labelFormaPago(r.forma_pago) : "Sin especificar"));
+  await putSection("TOTAL POR CATEGORIA", porCategoria);
+  await putSection("TOTAL POR FILIAL", porFilial);
+  await putSection("TOTAL POR SECTOR", porSector);
+  await putSection("TOTAL POR FORMA DE PAGO", porFormaPago);
 
   return await wb.xlsx.writeBuffer() as Buffer;
 }
