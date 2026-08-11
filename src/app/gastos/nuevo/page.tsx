@@ -19,6 +19,7 @@ export default function NuevoGastoPage() {
   const router = useRouter();
   const search = useSearchParams();
   const duplicarId = search?.get("duplicar") ?? "";
+  const filialPreselect = search?.get("filial") ?? "";
 
   const [filiales, setFiliales] = useState<FilialLite[]>([]);
   const [categoriasAll, setCategoriasAll] = useState<Categoria[]>([]);
@@ -44,6 +45,8 @@ export default function NuevoGastoPage() {
       if (fJ?.success) setFiliales(fJ.data);
       if (cJ?.success) setCategoriasAll(cJ.data.gasto);
 
+      if (filialPreselect && !duplicarId) setFilialId(filialPreselect);
+
       if (duplicarId) {
         const dRes = await fetchWithSupabaseSession(`/api/iglesia/gastos/${duplicarId}`, { cache: "no-store" });
         const dJ = await dRes.json();
@@ -56,7 +59,7 @@ export default function NuevoGastoPage() {
         }
       }
     })();
-  }, [duplicarId]);
+  }, [duplicarId, filialPreselect]);
 
   const filialOptions = useMemo(() => buildFilialOptions(filiales), [filiales]);
 

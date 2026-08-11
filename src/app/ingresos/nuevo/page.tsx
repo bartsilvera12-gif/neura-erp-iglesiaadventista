@@ -21,6 +21,7 @@ export default function NuevoIngresoPage() {
   const router = useRouter();
   const search = useSearchParams();
   const duplicarId = search?.get("duplicar") ?? "";
+  const filialPreselect = search?.get("filial") ?? "";
 
   const [filiales, setFiliales] = useState<FilialLite[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -51,6 +52,8 @@ export default function NuevoIngresoPage() {
       if (cJ?.success) setCategorias(cJ.data.ingreso);
       if (aJ?.success) setAportantes(aJ.data);
 
+      if (filialPreselect && !duplicarId) setFilialId(filialPreselect);
+
       if (duplicarId) {
         const dRes = await fetchWithSupabaseSession(`/api/iglesia/ingresos/${duplicarId}`, { cache: "no-store" });
         const dJ = await dRes.json();
@@ -64,7 +67,7 @@ export default function NuevoIngresoPage() {
         }
       }
     })();
-  }, [duplicarId]);
+  }, [duplicarId, filialPreselect]);
 
   const filialOptions = useMemo(() => buildFilialOptions(filiales), [filiales]);
   const categoriaOptions = useMemo(() => categorias.map((c) => ({ value: c.id, label: c.nombre })), [categorias]);

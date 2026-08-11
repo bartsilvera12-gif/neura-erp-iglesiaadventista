@@ -203,10 +203,10 @@ export default function GastosPage() {
                     <td className="px-4 py-2.5 text-right font-semibold text-rose-700 whitespace-nowrap">{fmtGs(Number(r.monto))}</td>
                     <td className="px-4 py-2.5 text-right whitespace-nowrap">
                       <div className="inline-flex gap-1">
-                        <Link href={`/gastos/nuevo?duplicar=${r.id}`}
-                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 shadow-sm hover:border-[#4FAEB2]/60 hover:text-[#3F8E91]"
-                          title="Duplicar">
-                          📋 Duplicar
+                        <Link href={`/gastos/nuevo?filial=${r.filial?.id ?? ""}`}
+                          className="inline-flex items-center gap-1 rounded-lg border border-[#4FAEB2]/60 bg-white px-2 py-1 text-xs font-medium text-[#3F8E91] shadow-sm hover:bg-[#4FAEB2]/10"
+                          title="Agregar otro gasto en esta filial">
+                          + Agregar
                         </Link>
                         <Link href={`/gastos/${r.id}/editar`}
                           className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 shadow-sm hover:border-[#4FAEB2]/60 hover:text-[#3F8E91]"
