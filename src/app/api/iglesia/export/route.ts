@@ -340,12 +340,18 @@ async function buildPdf(tipo: "ingresos" | "gastos", rows: Movimiento[], f: { se
 
   const titulo = tipo === "gastos" ? "REPORTE DE GASTOS" : "REPORTE DE INGRESOS";
 
-  // Cargar logo
+  // Cargar logo (Zentra)
   let logoImg: any = null;
   try {
-    const logoPath = path.join(process.cwd(), "public", "brand", "iglesiaadventista-logo.png");
-    if (fs.existsSync(logoPath)) {
-      logoImg = await pdf.embedPng(new Uint8Array(fs.readFileSync(logoPath)));
+    const candidatos = [
+      path.join(process.cwd(), "public", "brand", "zentra-logo-official.png"),
+      path.join(process.cwd(), "public", "brand", "zentralogo.png"),
+    ];
+    for (const p of candidatos) {
+      if (fs.existsSync(p)) {
+        logoImg = await pdf.embedPng(new Uint8Array(fs.readFileSync(p)));
+        break;
+      }
     }
   } catch { /* sin logo */ }
 
@@ -499,24 +505,32 @@ async function buildPdf(tipo: "ingresos" | "gastos", rows: Movimiento[], f: { se
     y -= 22;
 
     const totalSec = data.reduce((s, d) => s + d.total, 0);
-    const barMax = PAGE_W - 2 * margin - 240; // ancho disponible para barra
+    // Layout de columnas (posiciones fijas, sin superponerse):
+    //   Label:  margin+4 .. margin+170
+    //   Bar:    margin+178 .. margin+178+140 = margin+318
+    //   %:      right-alineado en margin+370
+    //   Monto:  right-alineado en PAGE_W-margin-4
+    const barX = margin + 178;
+    const barMax = 140;
+    const pctRightX = margin + 370;
+    const montoRightX = PAGE_W - margin - 4;
     data.slice(0, 15).forEach((d, idx) => {
       newPageIfNeeded(20);
       if (idx % 2 === 1) {
         page.drawRectangle({ x: margin, y: y - 3, width: PAGE_W - 2 * margin, height: 12, color: LIGHT });
       }
       const label = toStdNombre(d.key);
-      const labelClipped = label.length > 28 ? label.slice(0, 27) + "..." : label;
+      const labelClipped = label.length > 26 ? label.slice(0, 25) + "..." : label;
       draw(labelClipped, margin + 4, y, 8, font);
 
       // Barra proporcional
       const pct = totalSec > 0 ? d.total / totalSec : 0;
       const barW = Math.max(1, pct * barMax);
-      page.drawRectangle({ x: margin + 180, y: y - 1, width: barMax, height: 6, color: rgb(0.92, 0.92, 0.92) });
-      page.drawRectangle({ x: margin + 180, y: y - 1, width: barW, height: 6, color: ACCENT });
+      page.drawRectangle({ x: barX, y: y - 1, width: barMax, height: 6, color: rgb(0.92, 0.92, 0.92) });
+      page.drawRectangle({ x: barX, y: y - 1, width: barW, height: 6, color: ACCENT });
 
-      drawRight(`${(pct * 100).toFixed(1)}%`, margin + 180 + barMax + 40, y, 8, font, GRAY);
-      drawRight(fmtGs(d.total), PAGE_W - margin - 4, y, 8, bold, accentColor);
+      drawRight(`${(pct * 100).toFixed(1)}%`, pctRightX, y, 8, font, GRAY);
+      drawRight(fmtGs(d.total), montoRightX, y, 8, bold, accentColor);
       y -= 12;
     });
     if (data.length > 15) {
