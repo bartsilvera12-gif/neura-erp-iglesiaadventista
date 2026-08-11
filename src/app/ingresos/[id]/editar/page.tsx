@@ -8,6 +8,7 @@ import { FancySelect } from "@/components/ui/FancySelect";
 import { buildFilialOptions, type FilialLite } from "@/lib/iglesia/build-filial-options";
 import { FORMAS_PAGO } from "@/lib/iglesia/formas-pago";
 import { AportanteQuickAdd } from "@/components/iglesia/AportanteQuickAdd";
+import { MESES_LARGO, aniosDisponibles, mesAnioToFecha, fechaToMesAnio } from "@/lib/iglesia/mes-anio";
 
 type Categoria = { id: string; nombre: string };
 type Aportante = { id: string; nombre: string };
@@ -22,7 +23,10 @@ export default function EditarIngresoPage() {
   const [filialId, setFilialId] = useState("");
   const [categoriaId, setCategoriaId] = useState("");
   const [aportanteId, setAportanteId] = useState("");
-  const [fecha, setFecha] = useState("");
+  const now = new Date();
+  const [mes, setMes] = useState<number>(now.getMonth() + 1);
+  const [anio, setAnio] = useState<number>(now.getFullYear());
+  const fecha = mesAnioToFecha(mes, anio) ?? "";
   const [monto, setMonto] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [numeroFactura, setNumeroFactura] = useState("");
@@ -50,7 +54,8 @@ export default function EditarIngresoPage() {
         setFilialId(iJ.data.filial_id ?? "");
         setCategoriaId(iJ.data.categoria_id ?? "");
         setAportanteId(iJ.data.aportante_id ?? "");
-        setFecha(iJ.data.fecha ?? "");
+        const p = fechaToMesAnio(iJ.data.fecha);
+        if (p) { setMes(p.mes); setAnio(p.anio); }
         setMonto(String(iJ.data.monto ?? ""));
         setDescripcion(iJ.data.descripcion ?? "");
         setNumeroFactura(iJ.data.numero_factura ?? "");
@@ -126,11 +131,19 @@ export default function EditarIngresoPage() {
           <FancySelect options={categoriaOptions} value={categoriaId} onChange={setCategoriaId} placeholder="Elegí una categoría" />
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <label className="block text-sm">
-            <span className="mb-1 block text-xs font-semibold text-slate-700">Fecha *</span>
-            <input required type="date" value={fecha} onChange={(e) => setFecha(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-[#4FAEB2] focus:outline-none focus:ring-2 focus:ring-[#4FAEB2]/20" />
-          </label>
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-slate-700">Mes / Año *</label>
+            <div className="grid grid-cols-2 gap-2">
+              <select value={mes} onChange={(e) => setMes(Number(e.target.value))}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-[#4FAEB2] focus:outline-none focus:ring-2 focus:ring-[#4FAEB2]/20">
+                {MESES_LARGO.map((n, i) => <option key={i} value={i + 1}>{n}</option>)}
+              </select>
+              <select value={anio} onChange={(e) => setAnio(Number(e.target.value))}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-[#4FAEB2] focus:outline-none focus:ring-2 focus:ring-[#4FAEB2]/20">
+                {aniosDisponibles().map((y) => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </div>
+          </div>
           <label className="block text-sm">
             <span className="mb-1 block text-xs font-semibold text-slate-700">Monto (Gs) *</span>
             <input required type="number" step="1" min="1" value={monto} onChange={(e) => setMonto(e.target.value)}

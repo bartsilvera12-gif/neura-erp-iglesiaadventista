@@ -5,6 +5,7 @@ import { API_ERRORS } from "@/lib/api/errors";
 import * as XLSX from "xlsx";
 import { parseFecha } from "@/lib/iglesia/date-parse";
 import { toStdKey } from "@/lib/iglesia/normalize";
+import { mesAnioToFecha, MESES_LARGO } from "@/lib/iglesia/mes-anio";
 
 const FORMAS_VALIDAS = ["efectivo", "transferencia", "deposito", "cheque"];
 
@@ -77,6 +78,8 @@ export async function POST(request: NextRequest) {
       if (vacio) continue;
 
       const fechaRaw = getCol(row, ["fecha"]);
+      const mesRaw = getCol(row, ["mes"]);
+      const anioRaw = getCol(row, ["año", "anio", "aï¿½o"]);
       const filialRaw = getCol(row, ["filial"]);
       const catRaw = getCol(row, ["categor"]);
       const formaRaw = getCol(row, ["forma"]);
@@ -84,8 +87,23 @@ export async function POST(request: NextRequest) {
       const montoRaw = getCol(row, ["monto"]);
       const descRaw = getCol(row, ["descrip"]);
 
-      const fecha = parseFecha(fechaRaw);
-      if (!fecha) { result.errores.push({ fila: filaExcel, error: `Fecha inválida: "${fechaRaw}"` }); continue; }
+      // Fecha: primero intenta Mes+Año, si no cae al legacy Fecha
+      let fecha: string | null = null;
+      if (mesRaw || anioRaw) {
+        const mesStr = String(mesRaw ?? "").trim().toLowerCase();
+        let mesNum = Number(mesStr);
+        if (!Number.isFinite(mesNum) || mesNum < 1 || mesNum > 12) {
+          const norm = mesStr.normalize("NFD").replace(/[̀-ͯ]/g, "");
+          const idx = MESES_LARGO.findIndex((m) => m.toLowerCase().startsWith(norm.slice(0, 3)));
+          mesNum = idx >= 0 ? idx + 1 : NaN;
+        }
+        const anioNum = Number(anioRaw);
+        fecha = mesAnioToFecha(mesNum, anioNum);
+        if (!fecha) { result.errores.push({ fila: filaExcel, error: `Mes/Año inválidos: "${mesRaw}" / "${anioRaw}"` }); continue; }
+      } else {
+        fecha = parseFecha(fechaRaw);
+        if (!fecha) { result.errores.push({ fila: filaExcel, error: `Falta Mes/Año o Fecha válida.` }); continue; }
+      }
 
       const filialKey = norm(filialRaw);
       const filial = filialKey ? filialByName.get(filialKey) : undefined;

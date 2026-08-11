@@ -8,6 +8,7 @@ import { buildFilialOptions, type FilialLite } from "@/lib/iglesia/build-filial-
 import { labelFormaPago } from "@/lib/iglesia/formas-pago";
 import { ImportarBotones } from "@/components/iglesia/ImportarBotones";
 import { ReferenciaBoton } from "@/components/iglesia/ReferenciaBoton";
+import { MESES_LARGO, aniosDisponibles, mesAnioToFecha, labelMesAnio, pad2 } from "@/lib/iglesia/mes-anio";
 
 type Categoria = { id: string; nombre: string; orden: number };
 type Ingreso = {
@@ -34,11 +35,14 @@ export default function IngresosPage() {
   const [ingresos, setIngresos] = useState<Ingreso[]>([]);
   const [cargando, setCargando] = useState(true);
 
-  const [desde, setDesde] = useState("");
-  const [hasta, setHasta] = useState("");
+  const [filtroMes, setFiltroMes] = useState<number>(0); // 0 = todos
+  const [filtroAnio, setFiltroAnio] = useState<number>(new Date().getFullYear());
   const [filtroSector, setFiltroSector] = useState("");
   const [filtroFilial, setFiltroFilial] = useState("");
   const [filtroCategoria, setFiltroCategoria] = useState("");
+  // Rango efectivo segun filtro de mes/anio
+  const desde = filtroMes > 0 ? mesAnioToFecha(filtroMes, filtroAnio) ?? "" : `${filtroAnio}-01-01`;
+  const hasta = filtroMes > 0 ? `${filtroAnio}-${pad2(filtroMes)}-31` : `${filtroAnio}-12-31`;
 
   const [confirmDel, setConfirmDel] = useState<Ingreso | null>(null);
 
@@ -139,14 +143,19 @@ export default function IngresosPage() {
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm ring-1 ring-[#4FAEB2]/10">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-6">
           <label className="text-xs font-semibold text-slate-700">
-            <span className="mb-1 block">Desde</span>
-            <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-[#4FAEB2] focus:outline-none focus:ring-2 focus:ring-[#4FAEB2]/20" />
+            <span className="mb-1 block">Mes</span>
+            <select value={filtroMes} onChange={(e) => setFiltroMes(Number(e.target.value))}
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-[#4FAEB2] focus:outline-none focus:ring-2 focus:ring-[#4FAEB2]/20">
+              <option value={0}>Todos</option>
+              {MESES_LARGO.map((n, i) => <option key={i} value={i + 1}>{n}</option>)}
+            </select>
           </label>
           <label className="text-xs font-semibold text-slate-700">
-            <span className="mb-1 block">Hasta</span>
-            <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-[#4FAEB2] focus:outline-none focus:ring-2 focus:ring-[#4FAEB2]/20" />
+            <span className="mb-1 block">Año</span>
+            <select value={filtroAnio} onChange={(e) => setFiltroAnio(Number(e.target.value))}
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-[#4FAEB2] focus:outline-none focus:ring-2 focus:ring-[#4FAEB2]/20">
+              {aniosDisponibles().map((y) => <option key={y} value={y}>{y}</option>)}
+            </select>
           </label>
           <label className="text-xs font-semibold text-slate-700">
             <span className="mb-1 block">Sector</span>
@@ -181,7 +190,7 @@ export default function IngresosPage() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-xs uppercase text-slate-600">
                 <tr>
-                  <th className="px-4 py-2.5 text-left">Fecha</th>
+                  <th className="px-4 py-2.5 text-left">Mes</th>
                   <th className="px-4 py-2.5 text-left">Sector</th>
                   <th className="px-4 py-2.5 text-left">Filial</th>
                   <th className="px-4 py-2.5 text-left">Categoría</th>
@@ -196,7 +205,7 @@ export default function IngresosPage() {
               <tbody className="divide-y divide-slate-100">
                 {ingresos.map((r) => (
                   <tr key={r.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-2.5 whitespace-nowrap">{r.fecha}</td>
+                    <td className="px-4 py-2.5 whitespace-nowrap">{labelMesAnio(r.fecha)}</td>
                     <td className="px-4 py-2.5 text-slate-600">{r.filial?.sector?.nombre ?? (r.filial?.es_junta ? "JUNTA" : "")}</td>
                     <td className="px-4 py-2.5 font-medium min-w-[120px] break-words">{r.filial?.nombre ?? "—"}</td>
                     <td className="px-4 py-2.5 text-slate-600 min-w-[160px] break-words">{r.categoria?.nombre ?? "—"}</td>

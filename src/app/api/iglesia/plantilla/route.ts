@@ -29,8 +29,8 @@ export async function GET(request: NextRequest) {
 
     // ==== HOJA 1: Datos ====
     const header = tipo === "ingresos"
-      ? ["Fecha (dd-mm-yyyy)", "Filial", "Categoría", "Aportante (opcional)", "Teléfono aportante (opcional)", "Forma de pago (opcional)", "N° Factura (opcional)", "Monto (Gs)", "Descripción (opcional)"]
-      : ["Fecha (dd-mm-yyyy)", "Filial", "Categoría", "Forma de pago (opcional)", "N° Factura (opcional)", "Monto (Gs)", "Descripción (opcional)"];
+      ? ["Mes (nombre o 1-12)", "Año", "Filial", "Categoría", "Aportante (opcional)", "Teléfono aportante (opcional)", "Forma de pago (opcional)", "N° Factura (opcional)", "Monto (Gs)", "Descripción (opcional)"]
+      : ["Mes (nombre o 1-12)", "Año", "Filial", "Categoría", "Forma de pago (opcional)", "N° Factura (opcional)", "Monto (Gs)", "Descripción (opcional)"];
 
     const filialEjemplo = toStdNombre(filQ.data?.find((f) => !f.es_junta)?.nombre ?? "ASUNCION");
     const catEjemplo = tipo === "ingresos"
@@ -38,8 +38,8 @@ export async function GET(request: NextRequest) {
       : toStdNombre(catGasQ.data?.find((c) => c.aplica_a !== "junta")?.nombre ?? "AGUA");
 
     const ejemplo = tipo === "ingresos"
-      ? ["04-08-2026", filialEjemplo, catEjemplo, "JUAN PEREZ", "0981123456", "efectivo", "001-001-1234567", 50000, "Diezmo del sabado"]
-      : ["04-08-2026", filialEjemplo, catEjemplo, "efectivo", "A-234567", 25000, "Factura ANDE agosto"];
+      ? ["Noviembre", 2025, filialEjemplo, catEjemplo, "JUAN PEREZ", "0981123456", "efectivo", "001-001-1234567", 50000, "Diezmo del mes"]
+      : ["Noviembre", 2025, filialEjemplo, catEjemplo, "efectivo", "A-234567", 25000, "Factura ANDE noviembre"];
 
     const dataAoa: (string | number)[][] = [header, ejemplo];
     // Filas vacias para que el usuario cargue
@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
       ["INSTRUCCIONES"],
       [""],
       ["1. Completá los datos en la hoja 'Datos'. Podés borrar la fila de ejemplo."],
-      ["2. Fecha: usá formato dd-mm-yyyy (ej. 04-08-2026). También sirven yyyy-mm-dd o dd/mm/yyyy."],
+      ["2. Mes: escribí el nombre (Enero, Febrero...) o el número (1-12). Año: 4 dígitos (2025)."],
       ["3. Filial y Categoría: escribí el nombre EXACTO como figura en la hoja 'Referencia'."],
       ["4. Categorías de JUNTA solo se pueden usar en la filial JUNTA."],
       tipo === "ingresos"

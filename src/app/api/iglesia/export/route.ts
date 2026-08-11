@@ -9,6 +9,7 @@ import ExcelJS from "exceljs";
 import sharp from "sharp";
 import { labelFormaPago } from "@/lib/iglesia/formas-pago";
 import { toStdNombre } from "@/lib/iglesia/normalize";
+import { labelMesAnio } from "@/lib/iglesia/mes-anio";
 
 // ============================================================================
 // Tipos y helpers
@@ -318,8 +319,8 @@ async function buildExcel(tipo: "ingresos" | "gastos", rows: Movimiento[], f: { 
 
   // Header de tabla (fila 6)
   const header = tipo === "ingresos"
-    ? ["Fecha", "Sector", "Filial", "Categoría", "Aportante", "Forma pago", "N° Factura", "Monto (Gs)"]
-    : ["Fecha", "Sector", "Filial", "Categoría", "Forma pago", "N° Factura", "Monto (Gs)"];
+    ? ["Mes", "Sector", "Filial", "Categoría", "Aportante", "Forma pago", "N° Factura", "Monto (Gs)"]
+    : ["Mes", "Sector", "Filial", "Categoría", "Forma pago", "N° Factura", "Monto (Gs)"];
   ws.columns = header.map((_h, i) => ({ width: i === header.length - 1 ? 15 : 20 }));
 
   const headerRow = ws.getRow(6);
@@ -338,7 +339,7 @@ async function buildExcel(tipo: "ingresos" | "gastos", rows: Movimiento[], f: { 
     const row = ws.getRow(7 + idx);
     const cells = tipo === "ingresos"
       ? [
-          r.fecha,
+          labelMesAnio(r.fecha),
           toStdNombre(r.filial?.sector?.nombre ?? (r.filial?.es_junta ? "JUNTA" : "")),
           toStdNombre(r.filial?.nombre ?? ""),
           toStdNombre(r.categoria?.nombre ?? ""),
@@ -348,7 +349,7 @@ async function buildExcel(tipo: "ingresos" | "gastos", rows: Movimiento[], f: { 
           Number(r.monto),
         ]
       : [
-          r.fecha,
+          labelMesAnio(r.fecha),
           toStdNombre(r.filial?.sector?.nombre ?? (r.filial?.es_junta ? "JUNTA" : "")),
           toStdNombre(r.filial?.nombre ?? ""),
           toStdNombre(r.categoria?.nombre ?? ""),
@@ -546,7 +547,7 @@ async function buildPdf(tipo: "ingresos" | "gastos", rows: Movimiento[], f: { se
   // ==== TABLA DE DATOS ====
   const cols = tipo === "ingresos"
     ? [
-        { label: "Fecha", x: margin, w: 50 },
+        { label: "Mes", x: margin, w: 62 },
         { label: "Sector", x: margin + 52, w: 62 },
         { label: "Filial", x: margin + 116, w: 74 },
         { label: "Categoria", x: margin + 192, w: 80 },
@@ -556,7 +557,7 @@ async function buildPdf(tipo: "ingresos" | "gastos", rows: Movimiento[], f: { se
         { label: "Monto", x: margin + 457, w: 66, align: "right" as const },
       ]
     : [
-        { label: "Fecha", x: margin, w: 55 },
+        { label: "Mes", x: margin, w: 62 },
         { label: "Sector", x: margin + 57, w: 75 },
         { label: "Filial", x: margin + 134, w: 90 },
         { label: "Categoria", x: margin + 226, w: 100 },
@@ -589,7 +590,7 @@ async function buildPdf(tipo: "ingresos" | "gastos", rows: Movimiento[], f: { se
     }
     const cells = tipo === "ingresos"
       ? [
-          r.fecha,
+          labelMesAnio(r.fecha),
           toStdNombre(r.filial?.sector?.nombre ?? (r.filial?.es_junta ? "JUNTA" : "")),
           toStdNombre(r.filial?.nombre ?? ""),
           toStdNombre(r.categoria?.nombre ?? ""),
@@ -599,7 +600,7 @@ async function buildPdf(tipo: "ingresos" | "gastos", rows: Movimiento[], f: { se
           fmtGs(Number(r.monto)),
         ]
       : [
-          r.fecha,
+          labelMesAnio(r.fecha),
           toStdNombre(r.filial?.sector?.nombre ?? (r.filial?.es_junta ? "JUNTA" : "")),
           toStdNombre(r.filial?.nombre ?? ""),
           toStdNombre(r.categoria?.nombre ?? ""),
