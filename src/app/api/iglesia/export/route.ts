@@ -366,8 +366,7 @@ async function buildExcel(tipo: "ingresos" | "gastos", rows: Movimiento[], f: { 
     });
   });
 
-  // Fila TOTAL
-  const totalGeneral = rows.reduce((s, r) => s + Number(r.monto || 0), 0);
+  // Fila TOTAL (reusa totalGeneral ya calculado arriba para la portada)
   const totalRowIdx = 7 + rows.length;
   const totalRow = ws.getRow(totalRowIdx);
   const totalLabelCol = header.length - 1;
