@@ -231,11 +231,11 @@ async function buildExcel(tipo: "ingresos" | "gastos", rows: Movimiento[], f: { 
   const wsPortada = wb.addWorksheet("Portada", { views: [{ showGridLines: false }] });
   wsPortada.columns = [{ width: 4 }, { width: 30 }, { width: 30 }, { width: 25 }, { width: 4 }];
 
-  // Banda superior
-  wsPortada.mergeCells("A1", "E4");
-  const bandaCell = wsPortada.getCell("A1");
-  bandaCell.value = "";
-  bandaCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF" + COLOR_PRIMARY } };
+  // Banda superior — fill por celda (sin merge grande para evitar conflicto con merges de titulo)
+  const bandFill = { type: "pattern" as const, pattern: "solid" as const, fgColor: { argb: "FF" + COLOR_PRIMARY } };
+  for (let r = 1; r <= 4; r++) {
+    for (let c = 1; c <= 5; c++) wsPortada.getCell(r, c).fill = bandFill;
+  }
 
   // Titulo empresa
   wsPortada.mergeCells("B2", "D2");
