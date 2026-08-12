@@ -67,46 +67,29 @@ function xmlEscape(s: string): string {
  */
 async function chartBarrasPng(
   items: { label: string; value: number }[],
-  opts: { titulo: string; colorHex: string; width?: number }
+  opts: { colorHex: string; width?: number }
 ): Promise<Buffer> {
-  const width = opts.width ?? 900;
+  // Solo barras (sin texto) — texto va en las celdas de Excel al lado.
+  // (Sharp/librsvg en el server no tiene fuentes → cualquier texto sale como tofu.)
+  const width = opts.width ?? 640;
   const barsShown = items.slice(0, 12);
-  const total = items.reduce((s, i) => s + i.value, 0);
-  const rowH = 28;
-  const headerH = 46;
-  const paddingBottom = 20;
-  const height = headerH + barsShown.length * rowH + paddingBottom;
-  const labelW = 200;
-  const valueW = 130;
-  const pctW = 60;
-  const barX = labelW + 10;
-  const barMaxW = width - labelW - valueW - pctW - 30;
+  const rowH = 22;
+  const paddingTop = 6;
+  const paddingBottom = 6;
+  const height = paddingTop + barsShown.length * rowH + paddingBottom;
   const maxVal = Math.max(...barsShown.map((i) => i.value), 1);
-
-  const bars = barsShown.map((it, idx) => {
-    const y = headerH + idx * rowH;
-    const w = Math.max(2, (it.value / maxVal) * barMaxW);
-    const pct = total > 0 ? (it.value / total) * 100 : 0;
-    const label = xmlEscape(it.label.length > 26 ? it.label.slice(0, 25) + "..." : it.label);
-    const valStr = xmlEscape(Math.round(it.value).toLocaleString("es-PY"));
-    const bgRect = idx % 2 === 1 ? `<rect x="0" y="${y - 4}" width="${width}" height="${rowH}" fill="#F8FAFC"/>` : "";
+  const barsSvg = barsShown.map((it, idx) => {
+    const y = paddingTop + idx * rowH;
+    const w = Math.max(2, (it.value / maxVal) * (width - 20));
     return `
-      ${bgRect}
-      <text x="10" y="${y + 14}" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#334155">${label}</text>
-      <rect x="${barX}" y="${y + 5}" width="${barMaxW}" height="14" fill="#E2E8F0" rx="2"/>
-      <rect x="${barX}" y="${y + 5}" width="${w}" height="14" fill="#${opts.colorHex}" rx="2"/>
-      <text x="${width - valueW - pctW - 10}" y="${y + 15}" font-family="Helvetica" font-size="10" fill="#64748B" text-anchor="end">${pct.toFixed(1)}%</text>
-      <text x="${width - 10}" y="${y + 15}" font-family="Helvetica" font-size="11" font-weight="bold" fill="#0B3A3D" text-anchor="end">${valStr}</text>
+      <rect x="10" y="${y + 4}" width="${width - 20}" height="14" fill="#E2E8F0" rx="2"/>
+      <rect x="10" y="${y + 4}" width="${w}" height="14" fill="#${opts.colorHex}" rx="2"/>
     `;
   }).join("\n");
-
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-  <rect x="0" y="0" width="${width}" height="${headerH - 4}" fill="#0B3A3D"/>
-  <text x="16" y="28" font-family="Helvetica, Arial, sans-serif" font-size="14" font-weight="bold" fill="#FFFFFF">${xmlEscape(opts.titulo)}</text>
-  ${bars}
+  ${barsSvg}
 </svg>`;
-
   return await sharp(Buffer.from(svg)).png().toBuffer();
 }
 
@@ -385,21 +368,21 @@ async function buildExcel(tipo: "ingresos" | "gastos", rows: Movimiento[], f: { 
 
   // ================== HOJA 2: RESUMEN (con charts embebidos) ==================
   const wsSum = wb.addWorksheet("Resumen", { views: [{ showGridLines: false }] });
-  wsSum.columns = [{ width: 4 }, { width: 32 }, { width: 20 }, { width: 12 }];
+  wsSum.columns = [{ width: 4 }, { width: 32 }, { width: 20 }, { width: 12 }, { width: 55 }];
 
   let cursor = 2;
   const putSection = async (titulo: string, data: { key: string; total: number; count: number }[]) => {
     if (data.length === 0) return;
 
-    // Chart embebido arriba
-    const png = await chartBarrasPng(
-      data.map((d) => ({ label: toStdNombre(d.key), value: d.total })),
-      { titulo, colorHex: accentHex, width: 900 }
-    );
-    const imgId = wb.addImage({ buffer: png, extension: "png" });
-    const chartRows = Math.max(6, Math.min(14, data.length + 2));
-    wsSum.addImage(imgId, { tl: { col: 1, row: cursor - 1 }, ext: { width: 720, height: chartRows * 20 } });
-    cursor += chartRows + 1;
+    // Titulo de seccion como celda de Excel (fuente nativa, se lee bien)
+    wsSum.mergeCells(cursor, 2, cursor, 4);
+    const t = wsSum.getCell(cursor, 2);
+    t.value = titulo;
+    t.font = { bold: true, size: 12, color: { argb: "FFFFFFFF" } };
+    t.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF" + COLOR_PRIMARY } };
+    t.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
+    wsSum.getRow(cursor).height = 22;
+    cursor += 2;
 
     // Tabla debajo del chart
     // Headers
@@ -417,6 +400,7 @@ async function buildExcel(tipo: "ingresos" | "gastos", rows: Movimiento[], f: { 
 
     // Data
     const total = data.reduce((s, d) => s + d.total, 0);
+    const dataStartRow = cursor;
     data.forEach((d, idx) => {
       const r = wsSum.getRow(cursor);
       r.getCell(2).value = toStdNombre(d.key);
@@ -431,6 +415,18 @@ async function buildExcel(tipo: "ingresos" | "gastos", rows: Movimiento[], f: { 
       r.getCell(4).font = { color: { argb: "FF64748B" } };
       if (idx % 2 === 1) [2, 3, 4].forEach((col) => r.getCell(col).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF8FAFC" } });
       cursor++;
+    });
+
+    // Chart de barras al costado (solo barras, sin texto)
+    const png = await chartBarrasPng(
+      data.map((d) => ({ label: toStdNombre(d.key), value: d.total })),
+      { colorHex: accentHex, width: 400 }
+    );
+    const imgId = wb.addImage({ buffer: png, extension: "png" });
+    const chartHeight = Math.min(240, data.length * 20 + 8);
+    wsSum.addImage(imgId, {
+      tl: { col: 4, row: dataStartRow - 1 } as any,
+      ext: { width: 340, height: chartHeight },
     });
 
     // Total
@@ -472,12 +468,12 @@ async function buildPdf(tipo: "ingresos" | "gastos", rows: Movimiento[], f: { se
 
   const titulo = tipo === "gastos" ? "REPORTE DE GASTOS" : "REPORTE DE INGRESOS";
 
-  // Cargar logo (Zentra)
+  // Cargar logo (solo icono cuadrado — el ancho con texto se pisa con el titulo)
   let logoImg: any = null;
   try {
     const candidatos = [
-      path.join(process.cwd(), "public", "brand", "zentra-logo-official.png"),
       path.join(process.cwd(), "public", "brand", "zentralogo.png"),
+      path.join(process.cwd(), "public", "brand", "iglesiaadventista-logo.png"),
     ];
     for (const p of candidatos) {
       if (fs.existsSync(p)) {
@@ -517,14 +513,20 @@ async function buildPdf(tipo: "ingresos" | "gastos", rows: Movimiento[], f: { se
   // ==== HEADER ====
   const headerH = 60;
   page.drawRectangle({ x: 0, y: PAGE_H - headerH, width: PAGE_W, height: headerH, color: PRIMARY });
-  // Logo
+  // Logo (cuadrado, 40x40, alineado al centro vertical del header)
+  const LOGO_SIZE = 40;
   if (logoImg) {
-    const logoScale = 44 / logoImg.height;
-    page.drawImage(logoImg, { x: margin, y: PAGE_H - headerH + 8, width: logoImg.width * logoScale, height: 44 });
+    page.drawImage(logoImg, {
+      x: margin,
+      y: PAGE_H - headerH + (headerH - LOGO_SIZE) / 2,
+      width: LOGO_SIZE,
+      height: LOGO_SIZE,
+    });
   }
-  // Textos
-  page.drawText(EMPRESA_NOMBRE, { x: margin + 60, y: PAGE_H - 25, size: 13, font: bold, color: rgb(1,1,1) });
-  page.drawText(titulo, { x: margin + 60, y: PAGE_H - 42, size: 10, font, color: rgb(0.85, 0.95, 0.95) });
+  // Textos (empiezan despues del logo con margen holgado)
+  const textX = margin + LOGO_SIZE + 14;
+  page.drawText(EMPRESA_NOMBRE, { x: textX, y: PAGE_H - 25, size: 13, font: bold, color: rgb(1,1,1) });
+  page.drawText(titulo, { x: textX, y: PAGE_H - 42, size: 10, font, color: rgb(0.85, 0.95, 0.95) });
   const genTxt = `${new Date().toISOString().slice(0, 10)}`;
   drawRight(genTxt, PAGE_W - margin, PAGE_H - 25, 9, font, rgb(0.85, 0.95, 0.95));
 
