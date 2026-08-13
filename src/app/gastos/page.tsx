@@ -143,29 +143,30 @@ export default function GastosPage() {
 
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm ring-1 ring-[#4FAEB2]/10">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-7">
-          <label className="text-xs font-semibold text-slate-700 md:col-span-2">
+          <div className="text-xs font-semibold text-slate-700 md:col-span-2">
             <span className="mb-1 block">Mes{filtroMes > 0 && mesHastaEff > filtroMes ? " (rango)" : ""}</span>
             <div className="flex items-center gap-1.5">
-              <select value={filtroMes}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  setFiltroMes(v);
-                  if (v === 0 || (filtroMesHasta && filtroMesHasta < v)) setFiltroMesHasta(0);
+              <FancySelect
+                size="sm" ariaLabel="Mes desde" className="flex-1 min-w-0"
+                value={String(filtroMes)}
+                options={[{ value: "0", label: "Todos" }, ...MESES_LARGO.map((n, i) => ({ value: String(i + 1), label: n }))]}
+                onChange={(v) => {
+                  const n = Number(v);
+                  setFiltroMes(n);
+                  if (n === 0 || (filtroMesHasta && filtroMesHasta < n)) setFiltroMesHasta(0);
                 }}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-[#4FAEB2] focus:outline-none focus:ring-2 focus:ring-[#4FAEB2]/20">
-                <option value={0}>Todos</option>
-                {MESES_LARGO.map((n, i) => <option key={i} value={i + 1}>{n}</option>)}
-              </select>
+              />
               <span className="text-xs text-slate-400">a</span>
-              <select value={mesHastaEff} disabled={filtroMes === 0}
-                onChange={(e) => setFiltroMesHasta(Number(e.target.value))}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-[#4FAEB2] focus:outline-none focus:ring-2 focus:ring-[#4FAEB2]/20 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400">
-                {filtroMes === 0
-                  ? <option value={0}>—</option>
-                  : MESES_LARGO.map((n, i) => (i + 1 >= filtroMes ? <option key={i} value={i + 1}>{n}</option> : null))}
-              </select>
+              <FancySelect
+                size="sm" ariaLabel="Mes hasta" className="flex-1 min-w-0"
+                disabled={filtroMes === 0}
+                placeholder="— sin fin"
+                value={filtroMesHasta > filtroMes ? String(filtroMesHasta) : ""}
+                options={[{ value: "0", label: "— (quitar)" }, ...MESES_LARGO.flatMap((n, i) => (i + 1 > filtroMes ? [{ value: String(i + 1), label: n }] : []))]}
+                onChange={(v) => setFiltroMesHasta(Number(v))}
+              />
             </div>
-          </label>
+          </div>
           <label className="text-xs font-semibold text-slate-700">
             <span className="mb-1 block">Año</span>
             <select value={filtroAnio} onChange={(e) => setFiltroAnio(Number(e.target.value))}
