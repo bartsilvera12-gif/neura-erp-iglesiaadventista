@@ -40,9 +40,13 @@ export default function IngresosPage() {
   const [filtroSector, setFiltroSector] = useState("");
   const [filtroFilial, setFiltroFilial] = useState("");
   const [filtroCategoria, setFiltroCategoria] = useState("");
-  // Rango efectivo segun filtro de mes/anio
+  const [filtroMesHasta, setFiltroMesHasta] = useState<number>(0); // 0 = rango de un solo mes
+  // Mes final del rango: nunca menor al mes inicial (ej. enero→marzo).
+  const mesHastaEff = filtroMes > 0 ? Math.max(filtroMes, filtroMesHasta || filtroMes) : 0;
+  // Rango efectivo segun filtro de mes/anio (soporta rango de meses)
   const desde = filtroMes > 0 ? mesAnioToFecha(filtroMes, filtroAnio) ?? "" : `${filtroAnio}-01-01`;
-  const hasta = filtroMes > 0 ? `${filtroAnio}-${pad2(filtroMes)}-31` : `${filtroAnio}-12-31`;
+  const ultimoDiaHasta = mesHastaEff > 0 ? new Date(filtroAnio, mesHastaEff, 0).getDate() : 31;
+  const hasta = filtroMes > 0 ? `${filtroAnio}-${pad2(mesHastaEff)}-${pad2(ultimoDiaHasta)}` : `${filtroAnio}-12-31`;
 
   const [confirmDel, setConfirmDel] = useState<Ingreso | null>(null);
 
@@ -141,14 +145,29 @@ export default function IngresosPage() {
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm ring-1 ring-[#4FAEB2]/10">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-6">
-          <label className="text-xs font-semibold text-slate-700">
-            <span className="mb-1 block">Mes</span>
-            <select value={filtroMes} onChange={(e) => setFiltroMes(Number(e.target.value))}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-[#4FAEB2] focus:outline-none focus:ring-2 focus:ring-[#4FAEB2]/20">
-              <option value={0}>Todos</option>
-              {MESES_LARGO.map((n, i) => <option key={i} value={i + 1}>{n}</option>)}
-            </select>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-7">
+          <label className="text-xs font-semibold text-slate-700 md:col-span-2">
+            <span className="mb-1 block">Mes{filtroMes > 0 && mesHastaEff > filtroMes ? " (rango)" : ""}</span>
+            <div className="flex items-center gap-1.5">
+              <select value={filtroMes}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setFiltroMes(v);
+                  if (v === 0 || (filtroMesHasta && filtroMesHasta < v)) setFiltroMesHasta(0);
+                }}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-[#4FAEB2] focus:outline-none focus:ring-2 focus:ring-[#4FAEB2]/20">
+                <option value={0}>Todos</option>
+                {MESES_LARGO.map((n, i) => <option key={i} value={i + 1}>{n}</option>)}
+              </select>
+              <span className="text-xs text-slate-400">a</span>
+              <select value={mesHastaEff} disabled={filtroMes === 0}
+                onChange={(e) => setFiltroMesHasta(Number(e.target.value))}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-[#4FAEB2] focus:outline-none focus:ring-2 focus:ring-[#4FAEB2]/20 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400">
+                {filtroMes === 0
+                  ? <option value={0}>—</option>
+                  : MESES_LARGO.map((n, i) => (i + 1 >= filtroMes ? <option key={i} value={i + 1}>{n}</option> : null))}
+              </select>
+            </div>
           </label>
           <label className="text-xs font-semibold text-slate-700">
             <span className="mb-1 block">Año</span>
