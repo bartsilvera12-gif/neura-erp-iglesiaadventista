@@ -622,8 +622,8 @@ export default function Sidebar() {
             className={`relative flex items-center justify-center ${collapsed ? "h-11 w-11" : "h-[4.5rem] w-full max-w-[200px]"}`}
           >
             <Image
-              src="/brand/iglesiaadventista-logo.png"
-              alt="IGLESIA ADVENTISTA DE LA PROMESA"
+              src={collapsed ? "/brand/zentralogo.png" : "/brand/zentra-logo-official.png"}
+              alt="ZENTRA"
               width={400}
               height={220}
               sizes={collapsed ? "44px" : "200px"}
