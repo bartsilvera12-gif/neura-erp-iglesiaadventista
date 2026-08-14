@@ -8,6 +8,7 @@ import { buildFilialOptions, type FilialLite } from "@/lib/iglesia/build-filial-
 import { labelFormaPago } from "@/lib/iglesia/formas-pago";
 import { ImportarBotones } from "@/components/iglesia/ImportarBotones";
 import { ReferenciaBoton } from "@/components/iglesia/ReferenciaBoton";
+import { MovimientoModal } from "@/components/iglesia/MovimientoModal";
 import { MESES_LARGO, aniosDisponibles, mesAnioToFecha, labelMesAnio, pad2 } from "@/lib/iglesia/mes-anio";
 
 type Categoria = { id: string; nombre: string; aplica_a: string; orden: number };
@@ -46,6 +47,7 @@ export default function GastosPage() {
   const hasta = filtroMes > 0 ? `${filtroAnio}-${pad2(mesHastaEff)}-${pad2(ultimoDiaHasta)}` : `${filtroAnio}-12-31`;
 
   const [confirmDel, setConfirmDel] = useState<Gasto | null>(null);
+  const [nuevoMov, setNuevoMov] = useState(false);
 
   const sectoresUnicos = useMemo(() => {
     const map = new Map<string, string>();
@@ -134,10 +136,10 @@ export default function GastosPage() {
             className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm hover:border-[#4FAEB2]/60 hover:text-[#3F8E91]">
             📊 Excel
           </button>
-          <Link href="/gastos/nuevo"
+          <button onClick={() => setNuevoMov(true)}
             className="rounded-xl bg-[#4FAEB2] px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-[#4FAEB2]/25 hover:bg-[#3F8E91] active:scale-95">
-            + Nuevo gasto
-          </Link>
+            + Nuevo movimiento
+          </button>
         </div>
       </div>
 
@@ -283,6 +285,10 @@ export default function GastosPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {nuevoMov && (
+        <MovimientoModal defaultTipo="gasto" onClose={() => setNuevoMov(false)} onSaved={cargar} />
       )}
     </div>
   );
