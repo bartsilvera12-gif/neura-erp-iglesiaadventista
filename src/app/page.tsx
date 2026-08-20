@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { fetchWithSupabaseSession } from "@/lib/api/fetch-with-supabase-session";
+import { FancySelect } from "@/components/ui/FancySelect";
+import { buildFilialOptions, type FilialLite } from "@/lib/iglesia/build-filial-options";
 
 type Breakdown = { id: string; nombre: string; total: number; count: number };
 type Data = {
@@ -48,6 +50,24 @@ export default function DashboardIglesia() {
   const [data, setData] = useState<Data | null>(null);
   const [cargando, setCargando] = useState(true);
 
+  const [filiales, setFiliales] = useState<FilialLite[]>([]);
+  const [filialId, setFilialId] = useState(""); // "" = todas las filiales
+  const filialOptions = useMemo(
+    () => [{ value: "", label: "Todas las filiales" }, ...buildFilialOptions(filiales)],
+    [filiales]
+  );
+  const filialNombre = filialId
+    ? filiales.find((f) => f.id === filialId)?.nombre ?? "Filial"
+    : "Todas las filiales";
+
+  useEffect(() => {
+    (async () => {
+      const res = await fetchWithSupabaseSession("/api/iglesia/filiales", { cache: "no-store" });
+      const j = await res.json();
+      if (j?.success) setFiliales(j.data);
+    })();
+  }, []);
+
   const now = new Date();
   const [mesSel, setMesSel] = useState<number>(now.getMonth() + 1);
   const [anioSel, setAnioSel] = useState<number>(now.getFullYear());
@@ -82,12 +102,13 @@ export default function DashboardIglesia() {
     const qs = new URLSearchParams();
     if (desde) qs.set("desde", desde);
     if (hasta) qs.set("hasta", hasta);
+    if (filialId) qs.set("filial", filialId);
     const res = await fetchWithSupabaseSession(`/api/iglesia/dashboard?${qs.toString()}`, { cache: "no-store" });
     const j = await res.json();
     setData(j?.success ? j.data : null);
     setCargando(false);
   }
-  useEffect(() => { cargar(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [desde, hasta]);
+  useEffect(() => { cargar(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [desde, hasta, filialId]);
 
   return (
     <div className="space-y-6">
@@ -110,9 +131,15 @@ export default function DashboardIglesia() {
         </div>
       </div>
 
-      {/* Selector mes + año */}
-      <div className="flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-white p-3 text-xs">
-        <span className="mr-1 text-slate-500">Ir al mes:</span>
+      {/* Selector filial + mes + año */}
+      <div className="flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-3 text-xs">
+        <label className="flex flex-col gap-1">
+          <span className="text-slate-500">Filial</span>
+          <div className="w-60">
+            <FancySelect size="sm" options={filialOptions} value={filialId} onChange={setFilialId} placeholder="Todas las filiales" />
+          </div>
+        </label>
+        <span className="mr-1 self-center text-slate-500">Ir al mes:</span>
         <select value={mesSel} onChange={(e) => irAlMes(Number(e.target.value), anioSel)}
           className="rounded-md border border-slate-300 px-2 py-1 text-sm">
           {MESES.map((n, i) => <option key={i} value={i + 1}>{n}</option>)}
@@ -142,11 +169,19 @@ export default function DashboardIglesia() {
         <div className="py-20 text-center text-sm text-red-600">No se pudieron cargar los datos.</div>
       ) : (
         <>
-          {/* Tarjetas de totales */}
+          {/* Resumen: filial + período elegidos */}
+          <div className="rounded-2xl border border-[#4FAEB2]/30 bg-[#4FAEB2]/5 px-4 py-3">
+            <p className="text-sm font-semibold text-[#2F6E71]">
+              {filialNombre}
+              <span className="font-normal text-slate-500"> · {desde} → {hasta}</span>
+            </p>
+          </div>
+
+          {/* Tarjetas de totales (mismos filtros para ingresos y gastos) */}
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <Card titulo="Ingresos" valor={fmtGs(data.totales.ingresos)} sub={`${data.totales.cant_ingresos} mov.`} color="emerald" />
             <Card titulo="Gastos"   valor={fmtGs(data.totales.gastos)}   sub={`${data.totales.cant_gastos} mov.`}   color="rose" />
-            <Card titulo="Balance neto" valor={fmtGs(data.totales.balance)} sub="ingresos − gastos" color={data.totales.balance >= 0 ? "emerald" : "rose"} bold />
+            <Card titulo="Resultado" valor={fmtGs(data.totales.balance)} sub="ingresos − gastos" color={data.totales.balance >= 0 ? "emerald" : "rose"} bold />
           </div>
 
           {/* Grids de breakdowns */}

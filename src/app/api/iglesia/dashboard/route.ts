@@ -22,11 +22,13 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const desde = url.searchParams.get("desde");
     const hasta = url.searchParams.get("hasta");
+    const filial = url.searchParams.get("filial"); // filtra ingresos y gastos por la misma filial
 
-    const commonFilters = <T extends { gte: any; lte: any }>(q: T): T => {
+    const commonFilters = <T extends { gte: any; lte: any; eq: any }>(q: T): T => {
       let r: any = q;
       if (desde) r = r.gte("fecha", desde);
       if (hasta) r = r.lte("fecha", hasta);
+      if (filial) r = r.eq("filial_id", filial);
       return r as T;
     };
 
