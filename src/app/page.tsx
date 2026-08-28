@@ -110,6 +110,15 @@ export default function DashboardIglesia() {
   }
   useEffect(() => { cargar(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [desde, hasta, filialId]);
 
+  // Exporta el reporte (mismo endpoint que Ingresos/Gastos) con los filtros actuales del dashboard.
+  function download(tipo: "ingresos" | "gastos", formato: "pdf" | "xlsx") {
+    const qs = new URLSearchParams({ tipo, formato });
+    if (desde) qs.set("desde", desde);
+    if (hasta) qs.set("hasta", hasta);
+    if (filialId) qs.set("filial", filialId);
+    window.open(`/api/iglesia/export?${qs.toString()}`, "_blank");
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -161,6 +170,23 @@ export default function DashboardIglesia() {
             className="ml-2 rounded-md border border-slate-300 px-2 py-1 text-sm" />
         </label>
         <span className="text-slate-400">Período: {desde} → {hasta}</span>
+      </div>
+
+      {/* Exportar reportes con los filtros actuales */}
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 text-xs">
+        <span className="mr-1 font-semibold text-slate-700">Exportar reporte:</span>
+        <span className="text-slate-500">Ingresos</span>
+        <button onClick={() => download("ingresos", "pdf")}
+          className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 font-medium text-slate-700 shadow-sm hover:border-[#4FAEB2]/60 hover:text-[#3F8E91]">📄 PDF</button>
+        <button onClick={() => download("ingresos", "xlsx")}
+          className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 font-medium text-slate-700 shadow-sm hover:border-[#4FAEB2]/60 hover:text-[#3F8E91]">📊 Excel</button>
+        <span className="mx-1 text-slate-300">|</span>
+        <span className="text-slate-500">Gastos</span>
+        <button onClick={() => download("gastos", "pdf")}
+          className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 font-medium text-slate-700 shadow-sm hover:border-[#4FAEB2]/60 hover:text-[#3F8E91]">📄 PDF</button>
+        <button onClick={() => download("gastos", "xlsx")}
+          className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 font-medium text-slate-700 shadow-sm hover:border-[#4FAEB2]/60 hover:text-[#3F8E91]">📊 Excel</button>
+        <span className="ml-auto text-slate-400">{filialNombre}</span>
       </div>
 
       {cargando ? (
