@@ -148,6 +148,16 @@ export async function GET(request: NextRequest) {
     if (error) return NextResponse.json(errorResponse(error.message), { status: 400 });
     const rows = (data ?? []) as unknown as Movimiento[];
 
+    // Orden explícito: más reciente primero (la página 1 arranca por el último mes).
+    rows.sort((a, b) => {
+      const fa = a.fecha ?? "";
+      const fb = b.fecha ?? "";
+      if (fa !== fb) return fa < fb ? 1 : -1; // fecha desc
+      const na = a.filial?.nombre ?? "";
+      const nb = b.filial?.nombre ?? "";
+      return na.localeCompare(nb); // desempate estable por filial
+    });
+
     // Nombre archivo dinámico
     const [secQ, filQ, catQ] = await Promise.all([
       sector ? ctx.supabase.from("sectores").select("nombre").eq("id", sector).eq("empresa_id", ctx.auth.empresa_id).maybeSingle() : Promise.resolve({ data: null }),
