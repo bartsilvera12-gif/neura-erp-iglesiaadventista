@@ -184,6 +184,7 @@ export async function GET(request: NextRequest) {
         headers: {
           "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
           "Content-Disposition": `attachment; filename="${filenameBase}.xlsx"`,
+          "Cache-Control": "no-store, no-cache, must-revalidate",
         },
       });
     }
@@ -193,6 +194,7 @@ export async function GET(request: NextRequest) {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${filenameBase}.pdf"`,
+        "Cache-Control": "no-store, no-cache, must-revalidate",
       },
     });
   } catch (err) {
