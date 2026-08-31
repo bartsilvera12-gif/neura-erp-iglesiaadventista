@@ -121,7 +121,7 @@ export default function Header() {
                 width={120}
                 height={120}
                 sizes="36px"
-                className="h-full w-full object-contain p-0.5"
+                className="h-full w-full rounded-full object-cover"
                 priority
               />
             </div>
