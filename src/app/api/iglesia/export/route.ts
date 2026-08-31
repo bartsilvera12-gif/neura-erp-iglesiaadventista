@@ -11,6 +11,10 @@ import { labelFormaPago } from "@/lib/iglesia/formas-pago";
 import { toStdNombre } from "@/lib/iglesia/normalize";
 import { labelMesAnio } from "@/lib/iglesia/mes-anio";
 
+// Siempre dinámico: el reporte se genera fresco en cada request (nunca cacheado).
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 // ============================================================================
 // Tipos y helpers
 // ============================================================================
