@@ -34,17 +34,23 @@ export default function GastosPage() {
   const [gastos, setGastos] = useState<Gasto[]>([]);
   const [cargando, setCargando] = useState(true);
 
-  const [filtroMes, setFiltroMes] = useState<number>(0);
-  const [filtroAnio, setFiltroAnio] = useState<number>(new Date().getFullYear());
+  const anioActual = new Date().getFullYear();
+  const [filtroMes, setFiltroMes] = useState<number>(0); // desde: 0 = Todos (enero)
+  const [filtroAnio, setFiltroAnio] = useState<number>(anioActual);
+  const [filtroMesHasta, setFiltroMesHasta] = useState<number>(0); // hasta: 0 = sin fin (diciembre)
+  const [filtroAnioHasta, setFiltroAnioHasta] = useState<number>(anioActual);
   const [filtroSector, setFiltroSector] = useState("");
   const [filtroFilial, setFiltroFilial] = useState("");
   const [filtroCategoria, setFiltroCategoria] = useState("");
-  const [filtroMesHasta, setFiltroMesHasta] = useState<number>(0); // 0 = rango de un solo mes
-  // Mes final del rango: nunca menor al mes inicial (ej. enero→marzo).
-  const mesHastaEff = filtroMes > 0 ? Math.max(filtroMes, filtroMesHasta || filtroMes) : 0;
-  const desde = filtroMes > 0 ? mesAnioToFecha(filtroMes, filtroAnio) ?? "" : `${filtroAnio}-01-01`;
-  const ultimoDiaHasta = mesHastaEff > 0 ? new Date(filtroAnio, mesHastaEff, 0).getDate() : 31;
-  const hasta = filtroMes > 0 ? `${filtroAnio}-${pad2(mesHastaEff)}-${pad2(ultimoDiaHasta)}` : `${filtroAnio}-12-31`;
+
+  // Rango efectivo: Desde (mes+año) → Hasta (mes+año). Puede cruzar años (ej. oct 2025 → hoy).
+  const mesDesdeEff = filtroMes > 0 ? filtroMes : 1;
+  const mesHastaEff = filtroMesHasta > 0 ? filtroMesHasta : 12;
+  const desde = mesAnioToFecha(mesDesdeEff, filtroAnio) ?? `${filtroAnio}-01-01`;
+  let hasta = `${filtroAnioHasta}-${pad2(mesHastaEff)}-${pad2(new Date(filtroAnioHasta, mesHastaEff, 0).getDate())}`;
+  if (hasta < desde) {
+    hasta = `${filtroAnio}-${pad2(mesDesdeEff)}-${pad2(new Date(filtroAnio, mesDesdeEff, 0).getDate())}`;
+  }
 
   const [confirmDel, setConfirmDel] = useState<Gasto | null>(null);
   const [nuevoMov, setNuevoMov] = useState(false);
@@ -144,56 +150,48 @@ export default function GastosPage() {
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm ring-1 ring-[#4FAEB2]/10">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-7">
-          <div className="text-xs font-semibold text-slate-700 md:col-span-2">
-            <span className="mb-1 block">Mes{filtroMes > 0 && mesHastaEff > filtroMes ? " (rango)" : ""}</span>
+        <div className="flex flex-wrap items-end gap-3 text-xs font-semibold text-slate-700">
+          <div>
+            <span className="mb-1 block">Desde</span>
             <div className="flex items-center gap-1.5">
-              <FancySelect
-                size="sm" ariaLabel="Mes desde" className="flex-1 min-w-0"
-                value={String(filtroMes)}
-                options={[{ value: "0", label: "Todos" }, ...MESES_LARGO.map((n, i) => ({ value: String(i + 1), label: n }))]}
-                onChange={(v) => {
-                  const n = Number(v);
-                  setFiltroMes(n);
-                  if (n === 0 || (filtroMesHasta && filtroMesHasta < n)) setFiltroMesHasta(0);
-                }}
-              />
-              <span className="text-xs text-slate-400">a</span>
-              <FancySelect
-                size="sm" ariaLabel="Mes hasta" className="flex-1 min-w-0"
-                disabled={filtroMes === 0}
-                placeholder="— sin fin"
-                value={filtroMesHasta > filtroMes ? String(filtroMesHasta) : ""}
-                options={[{ value: "0", label: "— (quitar)" }, ...MESES_LARGO.flatMap((n, i) => (i + 1 > filtroMes ? [{ value: String(i + 1), label: n }] : []))]}
-                onChange={(v) => setFiltroMesHasta(Number(v))}
-              />
+              <div className="w-32"><FancySelect size="sm" ariaLabel="Mes desde" value={String(filtroMes)}
+                options={[{ value: "0", label: "Todos (Ene)" }, ...MESES_LARGO.map((n, i) => ({ value: String(i + 1), label: n }))]}
+                onChange={(v) => setFiltroMes(Number(v))} /></div>
+              <div className="w-24"><FancySelect size="sm" ariaLabel="Año desde" value={String(filtroAnio)}
+                options={aniosDisponibles().map((y) => ({ value: String(y), label: String(y) }))}
+                onChange={(v) => setFiltroAnio(Number(v))} /></div>
             </div>
           </div>
-          <label className="text-xs font-semibold text-slate-700">
-            <span className="mb-1 block">Año</span>
-            <select value={filtroAnio} onChange={(e) => setFiltroAnio(Number(e.target.value))}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-[#4FAEB2] focus:outline-none focus:ring-2 focus:ring-[#4FAEB2]/20">
-              {aniosDisponibles().map((y) => <option key={y} value={y}>{y}</option>)}
-            </select>
-          </label>
-          <label className="text-xs font-semibold text-slate-700">
+          <div>
+            <span className="mb-1 block">Hasta</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-32"><FancySelect size="sm" ariaLabel="Mes hasta" value={String(filtroMesHasta)}
+                options={[{ value: "0", label: "Sin fin (Dic)" }, ...MESES_LARGO.map((n, i) => ({ value: String(i + 1), label: n }))]}
+                onChange={(v) => setFiltroMesHasta(Number(v))} /></div>
+              <div className="w-24"><FancySelect size="sm" ariaLabel="Año hasta" value={String(filtroAnioHasta)}
+                options={aniosDisponibles().map((y) => ({ value: String(y), label: String(y) }))}
+                onChange={(v) => setFiltroAnioHasta(Number(v))} /></div>
+            </div>
+          </div>
+          <label className="w-40">
             <span className="mb-1 block">Sector</span>
             <FancySelect size="sm" options={sectorOptions} value={filtroSector}
               onChange={(v) => { setFiltroSector(v); setFiltroFilial(""); }} placeholder="Todos" />
           </label>
-          <label className="text-xs font-semibold text-slate-700">
+          <label className="w-44">
             <span className="mb-1 block">Filial</span>
             <FancySelect size="sm" options={filialOptions} value={filtroFilial} onChange={setFiltroFilial} placeholder="Todas" />
           </label>
-          <label className="text-xs font-semibold text-slate-700">
+          <label className="w-44">
             <span className="mb-1 block">Categoría</span>
             <FancySelect size="sm" options={categoriaOptions} value={filtroCategoria} onChange={setFiltroCategoria} placeholder="Todas" />
           </label>
           <button onClick={cargar}
-            className="self-end rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-700">
+            className="self-end rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-700">
             Aplicar
           </button>
         </div>
+        <p className="mt-2.5 text-[11px] font-normal text-slate-400">Período: {desde} → {hasta}</p>
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm ring-1 ring-[#4FAEB2]/10">
