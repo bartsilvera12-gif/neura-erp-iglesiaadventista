@@ -152,11 +152,11 @@ export async function GET(request: NextRequest) {
     if (error) return NextResponse.json(errorResponse(error.message), { status: 400 });
     const rows = (data ?? []) as unknown as Movimiento[];
 
-    // Orden explícito: más reciente primero (la página 1 arranca por el último mes).
+    // Orden explícito: del más antiguo al más reciente (ascendente por fecha).
     rows.sort((a, b) => {
       const fa = a.fecha ?? "";
       const fb = b.fecha ?? "";
-      if (fa !== fb) return fa < fb ? 1 : -1; // fecha desc
+      if (fa !== fb) return fa < fb ? -1 : 1; // fecha asc
       const na = a.filial?.nombre ?? "";
       const nb = b.filial?.nombre ?? "";
       return na.localeCompare(nb); // desempate estable por filial
