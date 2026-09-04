@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchWithSupabaseSession } from "@/lib/api/fetch-with-supabase-session";
+import { FancySelect } from "@/components/ui/FancySelect";
+import { buildFilialOptions, type FilialLite } from "@/lib/iglesia/build-filial-options";
+import { MESES_LARGO, aniosDisponibles } from "@/lib/iglesia/mes-anio";
 
 type Aportante = {
   id: string;
@@ -92,6 +95,8 @@ export default function AportantesPage() {
           </div>
         )}
       </div>
+
+      <RelatoriosAportantes />
 
       {(creating || editing) && (
         <AportanteModal
@@ -184,5 +189,219 @@ function AportanteModal({ aportante, onClose, onSaved }: {
         </div>
       </form>
     </div>
+  );
+}
+
+type Relatorio = {
+  id: string;
+  filial: { id: string; nombre: string; es_junta: boolean; sector: { id: string; nombre: string } | null } | null;
+  mes: number;
+  anio: number;
+  archivo_nombre: string | null;
+  mime_type: string | null;
+  observacion: string | null;
+  created_at: string;
+  url: string | null;
+};
+
+/** Relatorios de aportantes: subir y consultar el documento físico por filial y mes. */
+function RelatoriosAportantes() {
+  const now = new Date();
+  const [filiales, setFiliales] = useState<FilialLite[]>([]);
+  const [lista, setLista] = useState<Relatorio[]>([]);
+  const [cargando, setCargando] = useState(true);
+
+  // Filtros del historial
+  const [fFilial, setFFilial] = useState("");
+  const [fMes, setFMes] = useState(0);
+  const [fAnio, setFAnio] = useState(now.getFullYear());
+
+  // Formulario de carga
+  const [uFilial, setUFilial] = useState("");
+  const [uMes, setUMes] = useState(now.getMonth() + 1);
+  const [uAnio, setUAnio] = useState(now.getFullYear());
+  const [uObs, setUObs] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [subiendo, setSubiendo] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [okMsg, setOkMsg] = useState<string | null>(null);
+  const [delRow, setDelRow] = useState<Relatorio | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const j = await fetchWithSupabaseSession("/api/iglesia/filiales", { cache: "no-store" }).then((r) => r.json());
+      if (j?.success) setFiliales(j.data);
+    })();
+  }, []);
+
+  const filialOptsFiltro = useMemo(() => [{ value: "", label: "Todas las filiales" }, ...buildFilialOptions(filiales)], [filiales]);
+  const filialOptsCarga = useMemo(() => buildFilialOptions(filiales), [filiales]);
+  const mesOptsFiltro = useMemo(() => [{ value: "0", label: "Todos" }, ...MESES_LARGO.map((n, i) => ({ value: String(i + 1), label: n }))], []);
+  const mesOptsCarga = useMemo(() => MESES_LARGO.map((n, i) => ({ value: String(i + 1), label: n })), []);
+  const anioOpts = useMemo(() => aniosDisponibles().map((y) => ({ value: String(y), label: String(y) })), []);
+
+  const cargar = useCallback(async () => {
+    setCargando(true);
+    const qs = new URLSearchParams();
+    if (fFilial) qs.set("filial", fFilial);
+    if (fMes > 0) qs.set("mes", String(fMes));
+    if (fAnio) qs.set("anio", String(fAnio));
+    const j = await fetchWithSupabaseSession(`/api/iglesia/relatorios?${qs.toString()}`, { cache: "no-store" }).then((r) => r.json());
+    setLista(j?.success ? j.data : []);
+    setCargando(false);
+  }, [fFilial, fMes, fAnio]);
+  useEffect(() => { cargar(); }, [cargar]);
+
+  async function subir(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null); setOkMsg(null);
+    const file = fileRef.current?.files?.[0];
+    if (!uFilial) return setError("Elegí una filial.");
+    if (!file) return setError("Adjuntá una imagen o archivo (JPG, PNG, WebP o PDF).");
+    setSubiendo(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("filial_id", uFilial);
+    fd.append("mes", String(uMes));
+    fd.append("anio", String(uAnio));
+    fd.append("observacion", uObs);
+    const j = await fetchWithSupabaseSession("/api/iglesia/relatorios", { method: "POST", body: fd }).then((r) => r.json());
+    setSubiendo(false);
+    if (!j?.success) return setError(j?.error || "No se pudo subir el relatorio.");
+    setOkMsg("✓ Relatorio subido.");
+    setUObs("");
+    if (fileRef.current) fileRef.current.value = "";
+    setTimeout(() => setOkMsg(null), 3500);
+    cargar();
+  }
+
+  async function eliminar() {
+    if (!delRow) return;
+    await fetchWithSupabaseSession(`/api/iglesia/relatorios/${delRow.id}`, { method: "DELETE" });
+    setDelRow(null);
+    cargar();
+  }
+
+  return (
+    <section className="space-y-4">
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#4FAEB2]">Iglesia · Aportantes</p>
+        <h2 className="mt-1 text-base font-semibold tracking-tight text-slate-900">Relatorios por filial</h2>
+        <p className="mt-0.5 text-xs text-slate-500">Adjuntá el documento/boleta de aportantes de cada filial por mes, para no cargarlos uno por uno.</p>
+      </div>
+
+      {/* Adjuntar */}
+      <form onSubmit={subir} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm ring-1 ring-[#4FAEB2]/10">
+        <div className="flex flex-wrap items-end gap-3 text-xs font-semibold text-slate-700">
+          <div className="w-52">
+            <span className="mb-1 block">Filial *</span>
+            <FancySelect size="sm" options={filialOptsCarga} value={uFilial} onChange={setUFilial} placeholder="Elegí una filial" />
+          </div>
+          <div className="w-36">
+            <span className="mb-1 block">Mes *</span>
+            <FancySelect size="sm" options={mesOptsCarga} value={String(uMes)} onChange={(v) => setUMes(Number(v))} />
+          </div>
+          <div className="w-24">
+            <span className="mb-1 block">Año *</span>
+            <FancySelect size="sm" options={anioOpts} value={String(uAnio)} onChange={(v) => setUAnio(Number(v))} />
+          </div>
+          <label className="min-w-[200px] flex-1">
+            <span className="mb-1 block">Archivo o imagen *</span>
+            <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf"
+              className="block w-full text-xs text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-[#4FAEB2] file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-[#3F8E91]" />
+          </label>
+          <label className="min-w-[180px] flex-1">
+            <span className="mb-1 block">Observación (opcional)</span>
+            <input value={uObs} onChange={(e) => setUObs(e.target.value)} placeholder="Ej. Relatorio de julio"
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal shadow-sm focus:border-[#4FAEB2] focus:outline-none focus:ring-2 focus:ring-[#4FAEB2]/20" />
+          </label>
+          <button type="submit" disabled={subiendo}
+            className="self-end rounded-xl bg-[#4FAEB2] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#3F8E91] active:scale-95 disabled:opacity-50">
+            {subiendo ? "Subiendo…" : "📎 Subir relatorio"}
+          </button>
+        </div>
+        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+        {okMsg && <p className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{okMsg}</p>}
+      </form>
+
+      {/* Historial */}
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm ring-1 ring-[#4FAEB2]/10">
+        <div className="flex flex-wrap items-end gap-3 border-b border-slate-100 p-4 text-xs font-semibold text-slate-700">
+          <span className="self-center text-slate-500">Ver:</span>
+          <div className="w-52">
+            <span className="mb-1 block">Filial</span>
+            <FancySelect size="sm" options={filialOptsFiltro} value={fFilial} onChange={setFFilial} placeholder="Todas" />
+          </div>
+          <div className="w-36">
+            <span className="mb-1 block">Mes</span>
+            <FancySelect size="sm" options={mesOptsFiltro} value={String(fMes)} onChange={(v) => setFMes(Number(v))} />
+          </div>
+          <div className="w-24">
+            <span className="mb-1 block">Año</span>
+            <FancySelect size="sm" options={anioOpts} value={String(fAnio)} onChange={(v) => setFAnio(Number(v))} />
+          </div>
+        </div>
+
+        {cargando ? (
+          <div className="py-12 text-center text-sm text-slate-400">Cargando…</div>
+        ) : lista.length === 0 ? (
+          <div className="py-12 text-center text-slate-500">
+            <p className="text-3xl mb-2">📄</p>
+            <p className="text-sm">No hay relatorios para esos filtros.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-xs uppercase text-slate-600">
+                <tr>
+                  <th className="px-4 py-2.5 text-left">Mes / Año</th>
+                  <th className="px-4 py-2.5 text-left">Filial</th>
+                  <th className="px-4 py-2.5 text-left">Archivo</th>
+                  <th className="px-4 py-2.5 text-left">Observación</th>
+                  <th className="px-4 py-2.5"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {lista.map((r) => (
+                  <tr key={r.id} className="hover:bg-slate-50">
+                    <td className="px-4 py-2.5 whitespace-nowrap font-medium">{MESES_LARGO[r.mes - 1]} {r.anio}</td>
+                    <td className="px-4 py-2.5 text-slate-600">{r.filial?.nombre ?? "—"}</td>
+                    <td className="px-4 py-2.5">
+                      {r.url ? (
+                        <a href={r.url} target="_blank" rel="noreferrer"
+                          className="inline-flex items-center gap-1 rounded-lg border border-[#4FAEB2]/60 bg-white px-2 py-1 text-xs font-medium text-[#3F8E91] hover:bg-[#4FAEB2]/10">
+                          {r.mime_type === "application/pdf" ? "📄" : "🖼"} Ver / Descargar
+                        </a>
+                      ) : <span className="text-xs text-slate-400">— no disponible —</span>}
+                    </td>
+                    <td className="px-4 py-2.5 text-slate-500">{r.observacion ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-right whitespace-nowrap">
+                      <button onClick={() => setDelRow(r)}
+                        className="rounded-lg border border-rose-200 bg-white px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-50">🗑</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {delRow && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" onClick={() => setDelRow(null)}>
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-[#4FAEB2]/20" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-slate-900">¿Eliminar este relatorio?</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              {delRow.filial?.nombre} · {MESES_LARGO[delRow.mes - 1]} {delRow.anio}
+            </p>
+            <p className="mt-1 text-xs text-slate-400">Se borra el archivo adjunto. Esta acción no se puede deshacer.</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button onClick={() => setDelRow(null)} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Cancelar</button>
+              <button onClick={eliminar} className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-rose-700 active:scale-95">Sí, eliminar</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
