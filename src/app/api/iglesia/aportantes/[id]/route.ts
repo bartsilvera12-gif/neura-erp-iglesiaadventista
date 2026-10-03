@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getTenantSupabaseFromAuth } from "@/lib/supabase/tenant-api";
 import { successResponse, errorResponse } from "@/lib/api/response";
 import { API_ERRORS } from "@/lib/api/errors";
+import { toStdNombre } from "@/lib/iglesia/normalize";
+
+/** Normaliza una cédula: solo dígitos (quita puntos/espacios). "" => null. */
+function normalizarCedula(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const limpia = raw.replace(/[^\dkK]/g, "").trim();
+  return limpia ? limpia : null;
+}
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -9,19 +17,29 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (!ctx) return NextResponse.json(errorResponse(API_ERRORS.UNAUTHORIZED), { status: 401 });
     const { id } = await params;
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
-    const nombre = typeof body.nombre === "string" ? body.nombre.trim().toUpperCase() : "";
+    const nombre = typeof body.nombre === "string" ? toStdNombre(body.nombre) : "";
+    const cedula = normalizarCedula(body.cedula);
+    const filial_id = typeof body.filial_id === "string" && body.filial_id ? body.filial_id : null;
     const telefono = typeof body.telefono === "string" ? body.telefono.trim() : "";
     const observaciones = typeof body.observaciones === "string" ? body.observaciones.trim() : "";
     const activo = body.activo === false ? false : true;
     if (!nombre) return NextResponse.json(errorResponse("El nombre es obligatorio."), { status: 400 });
     const { data, error } = await ctx.supabase
       .from("aportantes")
-      .update({ nombre, telefono: telefono || null, observaciones: observaciones || null, activo })
+      .update({
+        nombre, cedula, filial_id,
+        telefono: telefono || null, observaciones: observaciones || null, activo,
+      })
       .eq("id", id)
       .eq("empresa_id", ctx.auth.empresa_id)
       .select()
       .single();
-    if (error) return NextResponse.json(errorResponse(error.message), { status: 400 });
+    if (error) {
+      if (error.code === "23505") {
+        return NextResponse.json(errorResponse("Ya existe un aportante con esa cédula."), { status: 400 });
+      }
+      return NextResponse.json(errorResponse(error.message), { status: 400 });
+    }
     return NextResponse.json(successResponse(data));
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Error";
