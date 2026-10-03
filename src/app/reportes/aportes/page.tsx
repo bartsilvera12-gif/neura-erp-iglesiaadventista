@@ -86,7 +86,7 @@ export default function ReporteAportesPage() {
 
   function params(extra?: Record<string, string>) {
     const { desde, hasta } = rango();
-    const qs = new URLSearchParams({ desde, hasta });
+    const qs = new URLSearchParams({ desde, hasta, solo_aportes: "1" });
     if (filial) qs.set("filial", filial);
     if (aportante) qs.set("aportante", aportante);
     if (categoria) qs.set("categoria", categoria);
