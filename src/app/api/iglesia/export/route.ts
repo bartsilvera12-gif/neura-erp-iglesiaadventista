@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { getTenantSupabaseFromAuthWithRol } from "@/lib/supabase/tenant-api";
 import { esTesoreroRol } from "@/lib/iglesia/roles-server";
+import { esRolAdminEmpresaOGlobal } from "@/lib/auth/rol-empresa";
 import { errorResponse } from "@/lib/api/response";
 import { API_ERRORS } from "@/lib/api/errors";
 import { PDFDocument, StandardFonts, rgb, type PDFPage, type PDFFont, type RGB } from "pdf-lib";
@@ -133,6 +134,9 @@ export async function GET(request: NextRequest) {
     const aportante = tipo === "ingresos" ? url.searchParams.get("aportante") : null;
     const factura = tipo === "ingresos" ? url.searchParams.get("factura") : null;
     const soloAportes = tipo === "ingresos" && url.searchParams.get("solo_aportes") === "1";
+    if (soloAportes && !esRolAdminEmpresaOGlobal(ctx.auth.rol)) {
+      return NextResponse.json(errorResponse("Solo un administrador puede exportar el reporte consolidado de aportes."), { status: 403 });
+    }
 
     const tabla = tipo === "gastos" ? "gastos" : "ingresos";
     const catFk = tipo === "gastos" ? "categoria_gasto_id" : "categoria_id";
