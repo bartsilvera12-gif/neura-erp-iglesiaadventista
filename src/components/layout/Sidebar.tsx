@@ -45,7 +45,7 @@ import { supabase } from "@/lib/supabase";
 import type { ModuloEmpresa } from "@/lib/empresas/actions";
 import { getFavoritos, toggleFavorito } from "@/lib/favorites";
 import { canAccessSidebarSlug } from "@/lib/modulos/route-slug-map";
-import { esTesorero } from "@/lib/iglesia/tesorero";
+import { esTesorero, fetchRolActual } from "@/lib/iglesia/tesorero";
 import { esRolAdminEmpresaOGlobal } from "@/lib/auth/rol-empresa";
 import { useBoot } from "@/components/BootContext";
 import { getModuleAccessCached, peekModuleAccessCache } from "@/lib/modulos/module-access-cache";
@@ -371,16 +371,13 @@ export default function Sidebar() {
     setFavoritos(getFavoritos());
   }, []);
 
-  // Rol del usuario, para el menú del tesorero y la visibilidad del reporte general.
+  // Rol del usuario, para el menú del tesorero y la visibilidad del reporte.
+  // Se obtiene desde la API del servidor para no depender de RLS del navegador.
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        const cu = await getCurrentUser();
-        if (!cancelled) setRol(cu?.rol ?? null);
-      } catch {
-        if (!cancelled) setRol(null);
-      }
+      const r = await fetchRolActual();
+      if (!cancelled) setRol(r);
     })();
     return () => { cancelled = true; };
   }, []);
