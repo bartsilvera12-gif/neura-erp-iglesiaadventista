@@ -1,5 +1,5 @@
 -- ============================================================================
--- Aportantes: cédula + filial, y semilla de tipos de aporte (Diezmo/Ofrenda/Voto)
+-- Aportantes: cédula + filial, y semilla de tipos de aporte solicitados por el cliente
 -- ----------------------------------------------------------------------------
 -- IMPORTANTE: las tablas operativas de iglesia (aportantes, filiales,
 -- categorias_ingreso) viven en el SCHEMA DE DATOS del cliente, NO en `public`.
@@ -20,9 +20,8 @@ select distinct f.empresa_id, v.nombre, v.orden, true
 from filiales f
 cross join (values
   ('DIEZMO', 1),
-  ('OFRENDA ESCUELA BIBLICA', 2),
-  ('OFRENDA DEL CULTO', 3),
-  ('VOTOS', 4)
+  ('OFRENDA', 2),
+  ('VOTO', 3)
 ) as v(nombre, orden)
 where not exists (
   select 1 from categorias_ingreso c
