@@ -187,10 +187,12 @@ export default function AportantesPage() {
                           className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 shadow-sm hover:border-amber-300 hover:text-amber-700">
                           {r.activo ? "⏸ Inactivar" : "▶ Activar"}
                         </button>
-                        <button onClick={() => setConfirmDel(r)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-white px-2 py-1 text-xs font-medium text-rose-700 shadow-sm hover:bg-rose-50">
-                          🗑
-                        </button>
+                        {puedeImportar && (
+                          <button onClick={() => setConfirmDel(r)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-white px-2 py-1 text-xs font-medium text-rose-700 shadow-sm hover:bg-rose-50">
+                            Eliminar
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
