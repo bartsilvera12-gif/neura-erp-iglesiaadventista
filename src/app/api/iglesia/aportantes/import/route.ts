@@ -28,7 +28,7 @@ function normalizarCedula(raw: unknown): string | null {
 function cellText(v: ExcelJS.CellValue): string {
   if (v == null) return "";
   if (typeof v === "object") {
-    const o = v as Record<string, unknown>;
+    const o = v as unknown as Record<string, unknown>;
     if (typeof o.text === "string") return o.text;
     if (typeof o.result !== "undefined") return String(o.result);
     if (Array.isArray(o.richText)) return (o.richText as { text: string }[]).map((r) => r.text).join("");
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
 
     const buf = Buffer.from(await file.arrayBuffer());
     const wb = new ExcelJS.Workbook();
-    await wb.xlsx.load(buf);
+    await wb.xlsx.load(buf as unknown as Parameters<typeof wb.xlsx.load>[0]);
     const ws = wb.worksheets[0];
     if (!ws) return NextResponse.json(errorResponse("El archivo no tiene hojas."), { status: 400 });
 
