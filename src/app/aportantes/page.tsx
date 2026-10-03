@@ -6,6 +6,8 @@ import { FancySelect } from "@/components/ui/FancySelect";
 import { buildFilialOptions, type FilialLite } from "@/lib/iglesia/build-filial-options";
 import { MESES_LARGO, aniosDisponibles } from "@/lib/iglesia/mes-anio";
 import NominaImportModal from "@/components/iglesia/NominaImportModal";
+import { getCurrentUser } from "@/lib/auth";
+import { esRolAdminEmpresaOGlobal } from "@/lib/auth/rol-empresa";
 
 type Aportante = {
   id: string;
@@ -31,6 +33,7 @@ export default function AportantesPage() {
   const [creating, setCreating] = useState(false);
   const [confirmDel, setConfirmDel] = useState<Aportante | null>(null);
   const [importando, setImportando] = useState(false);
+  const [puedeImportar, setPuedeImportar] = useState(false);
 
   // Filtros
   const [busqueda, setBusqueda] = useState("");
@@ -45,6 +48,16 @@ export default function AportantesPage() {
     setCargando(false);
   }
   useEffect(() => { cargar(); }, []);
+  useEffect(() => {
+    (async () => {
+      try {
+        const u = await getCurrentUser();
+        setPuedeImportar(esRolAdminEmpresaOGlobal(u?.rol));
+      } catch {
+        setPuedeImportar(false);
+      }
+    })();
+  }, []);
   useEffect(() => {
     (async () => {
       const j = await fetchWithSupabaseSession("/api/iglesia/filiales", { cache: "no-store" }).then((r) => r.json());
@@ -96,10 +109,12 @@ export default function AportantesPage() {
           <p className="mt-0.5 text-xs text-slate-500">Personas que hacen diezmos, ofrendas o votos</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button onClick={() => setImportando(true)}
-            className="rounded-xl border border-[#4FAEB2]/50 bg-white px-4 py-2 text-xs font-semibold text-[#3F8E91] shadow-sm hover:bg-[#4FAEB2]/10 active:scale-95">
-            📥 Importar nómina
-          </button>
+          {puedeImportar && (
+            <button onClick={() => setImportando(true)}
+              className="rounded-xl border border-[#4FAEB2]/50 bg-white px-4 py-2 text-xs font-semibold text-[#3F8E91] shadow-sm hover:bg-[#4FAEB2]/10 active:scale-95">
+              Importar nómina
+            </button>
+          )}
           <button onClick={() => setCreating(true)}
             className="rounded-xl bg-[#4FAEB2] px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-[#4FAEB2]/25 hover:bg-[#3F8E91] active:scale-95">
             + Nuevo aportante
@@ -188,7 +203,7 @@ export default function AportantesPage() {
 
       <RelatoriosAportantes />
 
-      {importando && (
+      {importando && puedeImportar && (
         <NominaImportModal onClose={() => setImportando(false)} onCompleted={() => cargar()} />
       )}
 
