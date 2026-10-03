@@ -97,7 +97,7 @@ const MENU_STRUCTURE: MenuItem[] = [
   { key: "gastos", slug: "gastos", label: "Gastos", href: "/gastos", icon: Receipt },
   { key: "aportantes", slug: "clientes", label: "Aportantes", href: "/aportantes", icon: Users },
   { key: "aportes", slug: "clientes", label: "Aportes", href: "/aportes", icon: HandCoins },
-  { key: "reportes", slug: "reportes", label: "Reporte general", href: "/reportes", icon: BarChart3 },
+  { key: "reporte_aportes", slug: "reportes", label: "Reporte de aportes", href: "/reportes/aportes", icon: BarChart3 },
   { key: "estructura", slug: "configuracion", label: "Sectores y Filiales", href: "/estructura", icon: Building2 },
   { key: "categorias", slug: "configuracion", label: "Categorías", href: "/categorias", icon: Tags },
   // Items ocultos en ferreteria (no aplican / duplicados):
@@ -129,7 +129,7 @@ const MENU_STRUCTURE: MenuItem[] = [
 const MENU_FAMILIES: { id: string; titulo: string; keys: string[] }[] = [
   { id: "inicio", titulo: "Inicio", keys: ["dashboard"] },
   { id: "comercial", titulo: "Comercial", keys: ["clientes", "crm", "gestion-clientes", "ventas", "presupuestos", "planes"] },
-  { id: "finanzas", titulo: "Finanzas", keys: ["ingresos", "gastos", "aportantes", "aportes", "reportes", "pagos", "otros_ingresos", "entidades_bancarias", "notas_credito"] },
+  { id: "finanzas", titulo: "Finanzas", keys: ["ingresos", "gastos", "aportantes", "aportes", "reporte_aportes", "pagos", "otros_ingresos", "entidades_bancarias", "notas_credito"] },
   { id: "administracion_iglesia", titulo: "Configuración", keys: ["estructura", "categorias"] },
   { id: "operaciones", titulo: "Operaciones", keys: ["inventario", "compras", "recetas", "proyectos"] },
   { id: "omnicanal", titulo: "Omnicanal", keys: ["conversaciones", "conversaciones-finalizadas", "historial-omnicanal", "monitoreo", "campanas"] },
@@ -508,12 +508,11 @@ export default function Sidebar() {
   /** Acceso al ítem considerando rol (tesorero restringido, reporte solo admin). */
   const itemVisiblePorRol = (item: MenuItem): boolean => {
     if (esTesoreroRol) return item.key === "aportantes" || item.key === "aportes";
-    if (item.key === "reportes") return esAdminRol;
+    if (item.key === "reporte_aportes") return esAdminRol;
     return canAccessSidebarSlug(item.slug, modulosSlugs, esSuperAdmin, inactiveSlugsSet, { strict: strictAllowlist });
   };
   const hasAccess = (slug: string) => {
     if (esTesoreroRol) return slug === "clientes";
-    if (slug === "reportes") return esAdminRol;
     return canAccessSidebarSlug(slug, modulosSlugs, esSuperAdmin, inactiveSlugsSet, {
       strict: strictAllowlist,
     });
