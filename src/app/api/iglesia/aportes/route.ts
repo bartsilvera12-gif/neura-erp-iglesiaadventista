@@ -6,6 +6,14 @@ import { API_ERRORS } from "@/lib/api/errors";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+function tipoAporteCanonico(nombre: string): "DIEZMO" | "OFRENDA" | "VOTO" | null {
+  const n = nombre.trim().toUpperCase();
+  if (n === "DIEZMO") return "DIEZMO";
+  if (n === "OFRENDA") return "OFRENDA";
+  if (n === "VOTO" || n === "VOTOS") return "VOTO";
+  return null;
+}
+
 type Row = {
   id: string;
   fecha: string;
@@ -52,7 +60,7 @@ export async function GET(request: NextRequest) {
       const monto = Number(r.monto || 0);
       if (m >= 1 && m <= 12) porMes[m - 1] += monto;
       totalAnual += monto;
-      const tipo = r.categoria?.nombre ?? "Sin tipo";
+      const tipo = r.categoria?.nombre ? (tipoAporteCanonico(r.categoria.nombre) ?? r.categoria.nombre) : "Sin tipo";
       porTipo.set(tipo, (porTipo.get(tipo) ?? 0) + monto);
     }
 
