@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
     const sector = url.searchParams.get("sector");
     const aportante = url.searchParams.get("aportante");
     const factura = url.searchParams.get("factura");
+    const soloAportes = url.searchParams.get("solo_aportes") === "1";
 
     let q = ctx.supabase
       .from("ingresos")
@@ -46,6 +47,7 @@ export async function GET(request: NextRequest) {
     if (sector) q = q.eq("filial.sector_id", sector);
     if (aportante) q = q.eq("aportante_id", aportante);
     if (factura) q = q.ilike("numero_factura", `%${factura}%`);
+    if (soloAportes) q = q.not("aportante_id", "is", null);
 
     const { data, error } = await q;
     if (error) return NextResponse.json(errorResponse(error.message), { status: 400 });
