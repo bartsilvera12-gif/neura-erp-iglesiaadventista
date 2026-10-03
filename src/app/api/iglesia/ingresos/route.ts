@@ -19,6 +19,8 @@ export async function GET(request: NextRequest) {
     const filial = url.searchParams.get("filial");
     const categoria = url.searchParams.get("categoria");
     const sector = url.searchParams.get("sector");
+    const aportante = url.searchParams.get("aportante");
+    const factura = url.searchParams.get("factura");
 
     let q = ctx.supabase
       .from("ingresos")
@@ -26,7 +28,7 @@ export async function GET(request: NextRequest) {
         id, fecha, monto, descripcion, forma_pago, numero_factura, created_at,
         filial:filiales!inner(id, nombre, es_junta, aplica_15_porciento, sector:sectores(id, nombre)),
         categoria:categorias_ingreso(id, nombre),
-        aportante:aportantes(id, nombre)
+        aportante:aportantes(id, nombre, cedula)
       `)
       .eq("empresa_id", ctx.auth.empresa_id)
       .order("fecha", { ascending: false });
@@ -36,6 +38,8 @@ export async function GET(request: NextRequest) {
     if (filial) q = q.eq("filial_id", filial);
     if (categoria) q = q.eq("categoria_id", categoria);
     if (sector) q = q.eq("filial.sector_id", sector);
+    if (aportante) q = q.eq("aportante_id", aportante);
+    if (factura) q = q.ilike("numero_factura", `%${factura}%`);
 
     const { data, error } = await q;
     if (error) return NextResponse.json(errorResponse(error.message), { status: 400 });
