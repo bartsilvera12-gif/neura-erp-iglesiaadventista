@@ -37,6 +37,14 @@ function fmtGs(n: number) {
 }
 function pad(n: number) { return String(n).padStart(2, "0"); }
 
+function tipoAporteCanonico(nombre: string): "DIEZMO" | "OFRENDA" | "VOTO" | null {
+  const n = nombre.trim().toUpperCase();
+  if (n === "DIEZMO") return "DIEZMO";
+  if (n === "OFRENDA") return "OFRENDA";
+  if (n === "VOTO" || n === "VOTOS") return "VOTO";
+  return null;
+}
+
 export default function ReporteAportesPage() {
   const actual = new Date().getFullYear();
   const [filiales, setFiliales] = useState<Filial[]>([]);
@@ -73,7 +81,9 @@ export default function ReporteAportesPage() {
   }, [actual]);
 
   const filialOpts = useMemo(() => [{ value: "", label: "Todas las filiales" }, ...filiales.map((f) => ({ value: f.id, label: f.nombre }))], [filiales]);
-  const categoriaOpts = useMemo(() => [{ value: "", label: "Todos los tipos" }, ...categorias.map((c) => ({ value: c.id, label: c.nombre }))], [categorias]);
+  const categoriaOpts = useMemo(() => [{ value: "", label: "Todos los tipos" }, ...categorias
+    .filter((c) => tipoAporteCanonico(c.nombre) !== null)
+    .map((c) => ({ value: c.id, label: tipoAporteCanonico(c.nombre)! }))], [categorias]);
   const aportanteOpts = useMemo(() => [{ value: "", label: "Todos los aportantes" }, ...aportantes
     .filter((a) => !filial || a.filial_id === filial)
     .map((a) => ({ value: a.id, label: `${a.nombre}${a.cedula ? ` · CI ${a.cedula}` : ""}` }))], [aportantes, filial]);
@@ -119,7 +129,7 @@ export default function ReporteAportesPage() {
   const porTipo = useMemo(() => {
     const m = new Map<string, number>();
     rows.forEach((r) => {
-      const k = r.categoria?.nombre ?? "Sin tipo";
+      const k = r.categoria?.nombre ? (tipoAporteCanonico(r.categoria.nombre) ?? r.categoria.nombre) : "Sin tipo";
       m.set(k, (m.get(k) ?? 0) + Number(r.monto || 0));
     });
     return Array.from(m.entries()).map(([nombre, total]) => ({ nombre, total })).sort((a, b) => b.total - a.total);
@@ -155,6 +165,7 @@ export default function ReporteAportesPage() {
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#4FAEB2]">Iglesia · Administración</p>
           <h1 className="mt-1 text-lg font-semibold tracking-tight text-slate-900">Reporte de aportes</h1>
           <p className="mt-0.5 text-xs text-slate-500">Consolidado de todas las filiales y aportantes.</p>
+          <p className="mt-1 text-[11px] text-slate-500">Iglesia Adventista De La Promesa · RUC 80028776-2 · Personería Jurídica 74/74</p>
         </div>
         <div className="flex gap-2">
           <button onClick={() => exportar("pdf")} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-[#4FAEB2]">PDF</button>
