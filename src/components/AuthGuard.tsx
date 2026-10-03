@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import ZentraLoader from "@/components/ZentraLoader";
 import { BootProvider, useBoot } from "@/components/BootContext";
-import { getCurrentUser, getSession } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 import { getModuleAccessCached } from "@/lib/modulos/module-access-cache";
 import { isBootstrapSuperAdminEmail } from "@/lib/auth/super-admin-bootstrap-email";
 import {
@@ -13,14 +13,20 @@ import {
   isModuleSlugGranted,
   pathRequiresModuleSlug,
 } from "@/lib/modulos/route-slug-map";
+import { esTesorero, fetchRolActual } from "@/lib/iglesia/tesorero";
+import { esRolAdminEmpresaOGlobal } from "@/lib/auth/rol-empresa";
 
 const PUBLIC_ROUTES = ["/login"];
+
+/** Rutas que el tesorero puede usar (el resto lo manda a /aportes). */
+const TESORERO_PREFIXES = ["/aportantes", "/aportes"];
 
 type ModuleAccess = {
   superAdmin: boolean;
   slugs: Set<string>;
   inactiveSlugs: Set<string>;
   strict: boolean;
+  rol: string | null;
 };
 
 /**
@@ -86,20 +92,16 @@ function AuthGuardInner({ children }: { children: React.ReactNode }) {
         superAdmin = bootstrapSuper;
       }
 
-      if (!superAdmin) {
-        try {
-          const cu = await getCurrentUser();
-          if ((cu?.rol ?? "").trim() === "super_admin") superAdmin = true;
-        } catch {
-          /* sin fila usuarios en cliente */
-        }
-      }
+      // Resolvemos el rol desde el servidor para no depender de RLS del navegador.
+      const rol = await fetchRolActual();
+      if ((rol ?? "").trim() === "super_admin") superAdmin = true;
 
       setAccess({
         superAdmin,
         slugs: new Set(slugs),
         inactiveSlugs: new Set(inactiveSlugs),
         strict,
+        rol,
       });
       setLoading(false);
     }
@@ -117,6 +119,32 @@ function AuthGuardInner({ children }: { children: React.ReactNode }) {
     }
 
     if (pathname.startsWith("/admin") && !access.superAdmin) {
+      router.replace(
+        firstAccessibleHref(access.slugs, {
+          superAdmin: false,
+          inactiveSlugs: access.inactiveSlugs,
+          strict: access.strict,
+        })
+      );
+      setBlockedSlug(null);
+      return;
+    }
+
+    // ── Gating por ROL (iglesia) ────────────────────────────────────────────
+    const esAdmin = access.superAdmin || esRolAdminEmpresaOGlobal(access.rol);
+    // Tesorero: solo Aportantes y Aportes. Cualquier otra ruta → /aportes.
+    if (esTesorero(access.rol)) {
+      const permitido = TESORERO_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
+      if (!permitido) {
+        router.replace("/aportes");
+        setBlockedSlug(null);
+        return;
+      }
+      setBlockedSlug(null);
+      return;
+    }
+    // Reporte de aportes de iglesia: solo administradores. El /reportes existente mantiene sus permisos históricos.
+    if ((pathname === "/reportes/aportes" || pathname.startsWith("/reportes/aportes/")) && !esAdmin) {
       router.replace(
         firstAccessibleHref(access.slugs, {
           superAdmin: false,

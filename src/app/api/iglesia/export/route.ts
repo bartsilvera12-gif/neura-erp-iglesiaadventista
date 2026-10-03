@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "node:fs";
 import path from "node:path";
-import { getTenantSupabaseFromAuth } from "@/lib/supabase/tenant-api";
+import { getTenantSupabaseFromAuthWithRol } from "@/lib/supabase/tenant-api";
+import { esTesoreroRol } from "@/lib/iglesia/roles-server";
+import { esRolAdminEmpresaOGlobal } from "@/lib/auth/rol-empresa";
 import { errorResponse } from "@/lib/api/response";
 import { API_ERRORS } from "@/lib/api/errors";
 import { PDFDocument, StandardFonts, rgb, type PDFPage, type PDFFont, type RGB } from "pdf-lib";
@@ -35,6 +37,8 @@ type Movimiento = {
 };
 
 const EMPRESA_NOMBRE = "IGLESIA ADVENTISTA DE LA PROMESA";
+const EMPRESA_RUC = "80028776-2";
+const EMPRESA_PERSONERIA = "74/74";
 const COLOR_PRIMARY = "0B3A3D";
 const COLOR_ACCENT = "4FAEB2";
 
@@ -115,8 +119,11 @@ function agrupar(rows: Movimiento[], keyFn: (r: Movimiento) => string | null): {
 // ============================================================================
 export async function GET(request: NextRequest) {
   try {
-    const ctx = await getTenantSupabaseFromAuth(request);
+    const ctx = await getTenantSupabaseFromAuthWithRol(request);
     if (!ctx) return NextResponse.json(errorResponse(API_ERRORS.UNAUTHORIZED), { status: 401 });
+    if (esTesoreroRol(ctx.auth.rol)) {
+      return NextResponse.json(errorResponse("No tenés permiso para exportar el reporte general."), { status: 403 });
+    }
 
     const url = new URL(request.url);
     const tipo = url.searchParams.get("tipo") === "gastos" ? "gastos" : "ingresos";
@@ -126,6 +133,12 @@ export async function GET(request: NextRequest) {
     const filial = url.searchParams.get("filial");
     const categoria = url.searchParams.get("categoria");
     const sector = url.searchParams.get("sector");
+    const aportante = tipo === "ingresos" ? url.searchParams.get("aportante") : null;
+    const factura = tipo === "ingresos" ? url.searchParams.get("factura") : null;
+    const soloAportes = tipo === "ingresos" && url.searchParams.get("solo_aportes") === "1";
+    if (soloAportes && !esRolAdminEmpresaOGlobal(ctx.auth.rol)) {
+      return NextResponse.json(errorResponse("Solo un administrador puede exportar el reporte consolidado de aportes."), { status: 403 });
+    }
 
     const tabla = tipo === "gastos" ? "gastos" : "ingresos";
     const catFk = tipo === "gastos" ? "categoria_gasto_id" : "categoria_id";
@@ -135,7 +148,7 @@ export async function GET(request: NextRequest) {
       ? `id, fecha, monto, descripcion, forma_pago, numero_factura,
          filial:filiales!inner(id, nombre, es_junta, aplica_15_porciento, sector:sectores(id, nombre)),
          categoria:${catTable}(id, nombre),
-         aportante:aportantes(id, nombre)`
+         aportante:aportantes(id, nombre, cedula)`
       : `id, fecha, monto, descripcion, forma_pago, numero_factura,
          filial:filiales!inner(id, nombre, es_junta, aplica_15_porciento, sector:sectores(id, nombre)),
          categoria:${catTable}(id, nombre)`;
@@ -147,6 +160,9 @@ export async function GET(request: NextRequest) {
     if (filial) q = q.eq("filial_id", filial);
     if (categoria) q = q.eq(catFk, categoria);
     if (sector) q = q.eq("filial.sector_id", sector);
+    if (aportante) q = q.eq("aportante_id", aportante);
+    if (factura) q = q.ilike("numero_factura", `%${factura}%`);
+    if (soloAportes) q = q.not("aportante_id", "is", null);
 
     const { data, error } = await q;
     if (error) return NextResponse.json(errorResponse(error.message), { status: 400 });
@@ -265,6 +281,7 @@ async function buildExcel(tipo: "ingresos" | "gastos", rows: Movimiento[], f: { 
   putInfo(infoRow + 1, "Sector:", f.sector || "Todos");
   putInfo(infoRow + 2, "Filial:", f.filial || "Todas");
   putInfo(infoRow + 3, "Categoría:", f.categoria || "Todas");
+  putInfo(infoRow + 4, "Identidad:", `RUC ${EMPRESA_RUC} · Personería Jurídica ${EMPRESA_PERSONERIA}`);
   putInfo(infoRow + 5, "Generado:", new Date().toISOString().slice(0, 19).replace("T", " "));
 
   // Bloque totales grandes
@@ -297,7 +314,7 @@ async function buildExcel(tipo: "ingresos" | "gastos", rows: Movimiento[], f: { 
   ws.getRow(1).height = 22;
 
   ws.mergeCells("A2", tipo === "ingresos" ? "H2" : "G2");
-  ws.getCell("A2").value = titulo;
+  ws.getCell("A2").value = `${titulo} · RUC ${EMPRESA_RUC} · Personería Jurídica ${EMPRESA_PERSONERIA}`;
   ws.getCell("A2").font = { name: "Calibri", size: 12, bold: true, color: { argb: "FF" + accent } };
   ws.getCell("A2").alignment = { horizontal: "center" };
 
@@ -438,7 +455,7 @@ async function buildExcel(tipo: "ingresos" | "gastos", rows: Movimiento[], f: { 
       data.map((d) => ({ label: toStdNombre(d.key), value: d.total })),
       { colorHex: accentHex, width: 400 }
     );
-    const imgId = wb.addImage({ buffer: png, extension: "png" });
+    const imgId = wb.addImage({ buffer: png, extension: "png" } as unknown as Parameters<typeof wb.addImage>[0]);
     const chartHeight = Math.min(240, data.length * 20 + 8);
     wsSum.addImage(imgId, {
       tl: { col: 4, row: dataStartRow - 1 } as any,
@@ -463,7 +480,7 @@ async function buildExcel(tipo: "ingresos" | "gastos", rows: Movimiento[], f: { 
   await putSection("TOTAL POR SECTOR", porSector);
   await putSection("TOTAL POR FORMA DE PAGO", porFormaPago);
 
-  return await wb.xlsx.writeBuffer() as Buffer;
+  return (await wb.xlsx.writeBuffer()) as unknown as Buffer;
 }
 
 // ============================================================================
@@ -543,6 +560,7 @@ async function buildPdf(tipo: "ingresos" | "gastos", rows: Movimiento[], f: { se
   const textX = margin + LOGO_SIZE + 14;
   page.drawText(EMPRESA_NOMBRE, { x: textX, y: PAGE_H - 25, size: 13, font: bold, color: rgb(1,1,1) });
   page.drawText(titulo, { x: textX, y: PAGE_H - 42, size: 10, font, color: rgb(0.85, 0.95, 0.95) });
+  page.drawText(`RUC ${EMPRESA_RUC} · Personería Jurídica ${EMPRESA_PERSONERIA}`, { x: textX, y: PAGE_H - 55, size: 7, font, color: rgb(0.85, 0.95, 0.95) });
   const genTxt = `${new Date().toISOString().slice(0, 10)}`;
   drawRight(genTxt, PAGE_W - margin, PAGE_H - 25, 9, font, rgb(0.85, 0.95, 0.95));
 

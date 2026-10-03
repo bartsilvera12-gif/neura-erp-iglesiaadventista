@@ -134,6 +134,11 @@ export function pathRequiresModuleSlug(pathname: string): string | null {
     if (p.startsWith("/dashboard/conversaciones")) return "conversaciones";
     return "conversaciones";
   }
+  // Iglesia: Aportantes/Aportes y su reporte dedicado se controlan por rol.
+  // El /reportes histórico conserva el gate del módulo "reportes".
+  if (p.startsWith("/aportantes")) return null;
+  if (p.startsWith("/aportes")) return null;
+  if (p.startsWith("/reportes/aportes")) return null;
   if (p.startsWith("/notas-credito")) return "notas_credito";
   if (p.startsWith("/ventas")) return "ventas";
   if (p.startsWith("/inventario")) return "inventario";

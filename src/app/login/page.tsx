@@ -46,7 +46,9 @@ export default function LoginPage() {
       if (res.ok) {
         const json = await res.json();
         const rol = String(json?.usuario?.rol ?? "").trim().toLowerCase();
-        if (["vendedor", "asesor", "comercial", "asesor comercial"].includes(rol)) {
+        if (rol === "tesorero") {
+          target = "/aportes";
+        } else if (["vendedor", "asesor", "comercial", "asesor comercial"].includes(rol)) {
           target = "/ventas";
         }
       }

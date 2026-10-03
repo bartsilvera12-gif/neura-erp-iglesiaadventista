@@ -35,6 +35,7 @@ import {
   Wallet,
   Banknote,
   Tags,
+  HandCoins,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { fetchWithSupabaseSession } from "@/lib/api/fetch-with-supabase-session";
@@ -44,6 +45,8 @@ import { supabase } from "@/lib/supabase";
 import type { ModuloEmpresa } from "@/lib/empresas/actions";
 import { getFavoritos, toggleFavorito } from "@/lib/favorites";
 import { canAccessSidebarSlug } from "@/lib/modulos/route-slug-map";
+import { esTesorero, fetchRolActual } from "@/lib/iglesia/tesorero";
+import { esRolAdminEmpresaOGlobal } from "@/lib/auth/rol-empresa";
 import { useBoot } from "@/components/BootContext";
 import { getModuleAccessCached, peekModuleAccessCache } from "@/lib/modulos/module-access-cache";
 
@@ -93,6 +96,8 @@ const MENU_STRUCTURE: MenuItem[] = [
   { key: "ingresos", slug: "ventas", label: "Ingresos", href: "/ingresos", icon: Wallet },
   { key: "gastos", slug: "gastos", label: "Gastos", href: "/gastos", icon: Receipt },
   { key: "aportantes", slug: "clientes", label: "Aportantes", href: "/aportantes", icon: Users },
+  { key: "aportes", slug: "clientes", label: "Aportes", href: "/aportes", icon: HandCoins },
+  { key: "reporte_aportes", slug: "reportes", label: "Reporte de aportes", href: "/reportes/aportes", icon: BarChart3 },
   { key: "estructura", slug: "configuracion", label: "Sectores y Filiales", href: "/estructura", icon: Building2 },
   { key: "categorias", slug: "configuracion", label: "Categorías", href: "/categorias", icon: Tags },
   // Items ocultos en ferreteria (no aplican / duplicados):
@@ -124,7 +129,7 @@ const MENU_STRUCTURE: MenuItem[] = [
 const MENU_FAMILIES: { id: string; titulo: string; keys: string[] }[] = [
   { id: "inicio", titulo: "Inicio", keys: ["dashboard"] },
   { id: "comercial", titulo: "Comercial", keys: ["clientes", "crm", "gestion-clientes", "ventas", "presupuestos", "planes"] },
-  { id: "finanzas", titulo: "Finanzas", keys: ["ingresos", "gastos", "aportantes", "pagos", "otros_ingresos", "entidades_bancarias", "notas_credito", "reportes"] },
+  { id: "finanzas", titulo: "Finanzas", keys: ["ingresos", "gastos", "aportantes", "aportes", "reporte_aportes", "pagos", "otros_ingresos", "entidades_bancarias", "notas_credito"] },
   { id: "administracion_iglesia", titulo: "Configuración", keys: ["estructura", "categorias"] },
   { id: "operaciones", titulo: "Operaciones", keys: ["inventario", "compras", "recetas", "proyectos"] },
   { id: "omnicanal", titulo: "Omnicanal", keys: ["conversaciones", "conversaciones-finalizadas", "historial-omnicanal", "monitoreo", "campanas"] },
@@ -309,6 +314,8 @@ export default function Sidebar() {
     !(cachedAccess && (cachedAccess.modulos?.length || cachedAccess.slugs?.length)),
   );
   const [esSuperAdmin, setEsSuperAdmin] = useState<boolean>(!!cachedAccess?.superAdmin);
+  /** Rol del usuario (para menú de tesorero y reporte general). */
+  const [rol, setRol] = useState<string | null>(null);
   /** Filtro visual del menú (no altera permisos ni rutas). */
   const [menuSearchQuery, setMenuSearchQuery] = useState("");
   const { setSidebarReady, mobileSidebarOpen, setMobileSidebarOpen } = useBoot();
@@ -362,6 +369,17 @@ export default function Sidebar() {
 
   useEffect(() => {
     setFavoritos(getFavoritos());
+  }, []);
+
+  // Rol del usuario, para el menú del tesorero y la visibilidad del reporte.
+  // Se obtiene desde la API del servidor para no depender de RLS del navegador.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const r = await fetchRolActual();
+      if (!cancelled) setRol(r);
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -479,12 +497,23 @@ export default function Sidebar() {
     setFavoritos(toggleFavorito(id));
   };
 
+  const esTesoreroRol = esTesorero(rol);
+  const esAdminRol = esSuperAdmin || esRolAdminEmpresaOGlobal(rol);
+
   const modulosSlugs = new Set(modulos.map((m) => m.slug));
   const inactiveSlugsSet = useMemo(() => new Set(inactiveSlugsList), [inactiveSlugsList]);
-  const hasAccess = (slug: string) =>
-    canAccessSidebarSlug(slug, modulosSlugs, esSuperAdmin, inactiveSlugsSet, {
+  /** Acceso al ítem considerando rol (tesorero restringido, reporte solo admin). */
+  const itemVisiblePorRol = (item: MenuItem): boolean => {
+    if (esTesoreroRol) return item.key === "aportantes" || item.key === "aportes";
+    if (item.key === "reporte_aportes") return esAdminRol;
+    return canAccessSidebarSlug(item.slug, modulosSlugs, esSuperAdmin, inactiveSlugsSet, { strict: strictAllowlist });
+  };
+  const hasAccess = (slug: string) => {
+    if (esTesoreroRol) return slug === "clientes";
+    return canAccessSidebarSlug(slug, modulosSlugs, esSuperAdmin, inactiveSlugsSet, {
       strict: strictAllowlist,
     });
+  };
 
   const isActive = (slug: string, href: string) => {
     const p = pathname ?? "";
@@ -499,30 +528,26 @@ export default function Sidebar() {
   const slugToId = (slug: string) => modulos.find((m) => m.slug === slug)?.id ?? slug;
 
   const favoritosItemsFiltered = useMemo(() => {
-    const slugs = new Set(modulos.map((m) => m.slug));
     const idForSlug = (slug: string) => modulos.find((m) => m.slug === slug)?.id ?? slug;
-    const access = (slug: string) =>
-      canAccessSidebarSlug(slug, slugs, esSuperAdmin, inactiveSlugsSet, { strict: strictAllowlist });
     return MENU_STRUCTURE.filter(
       (item) =>
         favoritos.includes(idForSlug(item.slug)) &&
-        access(item.slug) &&
+        itemVisiblePorRol(item) &&
         menuItemMatchesQuery(item, menuSearchQuery)
     );
-  }, [favoritos, menuSearchQuery, modulos, esSuperAdmin, inactiveSlugsSet, strictAllowlist]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [favoritos, menuSearchQuery, modulos, esSuperAdmin, inactiveSlugsSet, strictAllowlist, rol]);
 
   const mainItemsFiltered = useMemo(() => {
-    const slugs = new Set(modulos.map((m) => m.slug));
     const idForSlug = (slug: string) => modulos.find((m) => m.slug === slug)?.id ?? slug;
-    const access = (slug: string) =>
-      canAccessSidebarSlug(slug, slugs, esSuperAdmin, inactiveSlugsSet, { strict: strictAllowlist });
     return MENU_STRUCTURE.filter(
       (item) =>
         !favoritos.includes(idForSlug(item.slug)) &&
-        access(item.slug) &&
+        itemVisiblePorRol(item) &&
         menuItemMatchesQuery(item, menuSearchQuery)
     );
-  }, [favoritos, menuSearchQuery, modulos, esSuperAdmin, inactiveSlugsSet, strictAllowlist]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [favoritos, menuSearchQuery, modulos, esSuperAdmin, inactiveSlugsSet, strictAllowlist, rol]);
 
   // Agrupar los ítems visibles del menú principal por familias (solo visual).
   const seccionesMenu = useMemo(() => {
