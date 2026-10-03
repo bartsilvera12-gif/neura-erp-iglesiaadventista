@@ -134,6 +134,11 @@ export function pathRequiresModuleSlug(pathname: string): string | null {
     if (p.startsWith("/dashboard/conversaciones")) return "conversaciones";
     return "conversaciones";
   }
+  // Iglesia: el acceso a Aportantes/Aportes/Reportes lo controla el ROL
+  // (admin vs tesorero), no el módulo de empresa. Session-only.
+  if (p.startsWith("/aportantes")) return null;
+  if (p.startsWith("/aportes")) return null;
+  if (p.startsWith("/reportes")) return null;
   if (p.startsWith("/notas-credito")) return "notas_credito";
   if (p.startsWith("/ventas")) return "ventas";
   if (p.startsWith("/inventario")) return "inventario";
@@ -141,7 +146,6 @@ export function pathRequiresModuleSlug(pathname: string): string | null {
   if (p.startsWith("/proveedores")) return "compras";
   if (p.startsWith("/compras")) return "compras";
   if (p.startsWith("/gastos")) return "gastos";
-  if (p.startsWith("/reportes")) return "reportes";
   if (p.startsWith("/pagos")) return "pagos";
   if (p.startsWith("/comisiones")) return "comisiones";
   if (p.startsWith("/configuracion")) return "configuracion";
