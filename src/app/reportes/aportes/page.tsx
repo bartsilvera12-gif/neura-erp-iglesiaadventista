@@ -144,6 +144,16 @@ export default function ReporteAportesPage() {
     return Array.from(m.entries()).map(([nombre, total]) => ({ nombre, total })).sort((a, b) => b.total - a.total);
   }, [rows]);
 
+  // Total por persona dentro del mes/año seleccionado.
+  const porPersona = useMemo(() => {
+    const m = new Map<string, number>();
+    rows.forEach((r) => {
+      const k = r.aportante?.nombre ?? "Sin aportante";
+      m.set(k, (m.get(k) ?? 0) + Number(r.monto || 0));
+    });
+    return Array.from(m.entries()).map(([nombre, total]) => ({ nombre, total })).sort((a, b) => b.total - a.total);
+  }, [rows]);
+
   const aportantesPorFilial = useMemo(() => {
     const m = new Map<string, number>();
     aportantes.filter((a) => a.activo !== false).forEach((a) => {
@@ -223,8 +233,9 @@ export default function ReporteAportesPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
         <Resumen titulo="Totales por tipo" items={porTipo.map((x) => ({ label: x.nombre, value: fmtGs(x.total) }))} />
+        <Resumen titulo={mes ? "Aportes por persona · mes" : "Aportes por persona · año"} items={porPersona.map((x) => ({ label: x.nombre, value: fmtGs(x.total) }))} />
         <Resumen titulo="Totales por filial" items={porFilial.map((x) => ({ label: x.nombre, value: fmtGs(x.total) }))} />
         <Resumen titulo="Aportantes por filial" items={aportantesPorFilial.map((x) => ({ label: x.nombre, value: String(x.cantidad) }))} />
       </div>
