@@ -132,6 +132,7 @@ export async function GET(request: NextRequest) {
     const sector = url.searchParams.get("sector");
     const aportante = tipo === "ingresos" ? url.searchParams.get("aportante") : null;
     const factura = tipo === "ingresos" ? url.searchParams.get("factura") : null;
+    const soloAportes = tipo === "ingresos" && url.searchParams.get("solo_aportes") === "1";
 
     const tabla = tipo === "gastos" ? "gastos" : "ingresos";
     const catFk = tipo === "gastos" ? "categoria_gasto_id" : "categoria_id";
@@ -155,6 +156,7 @@ export async function GET(request: NextRequest) {
     if (sector) q = q.eq("filial.sector_id", sector);
     if (aportante) q = q.eq("aportante_id", aportante);
     if (factura) q = q.ilike("numero_factura", `%${factura}%`);
+    if (soloAportes) q = q.not("aportante_id", "is", null);
 
     const { data, error } = await q;
     if (error) return NextResponse.json(errorResponse(error.message), { status: 400 });
