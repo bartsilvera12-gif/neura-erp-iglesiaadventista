@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "node:fs";
 import path from "node:path";
-import { getTenantSupabaseFromAuth } from "@/lib/supabase/tenant-api";
+import { getTenantSupabaseFromAuthWithRol } from "@/lib/supabase/tenant-api";
+import { esTesoreroRol } from "@/lib/iglesia/roles-server";
 import { errorResponse } from "@/lib/api/response";
 import { API_ERRORS } from "@/lib/api/errors";
 import { PDFDocument, StandardFonts, rgb, type PDFPage, type PDFFont, type RGB } from "pdf-lib";
@@ -115,8 +116,11 @@ function agrupar(rows: Movimiento[], keyFn: (r: Movimiento) => string | null): {
 // ============================================================================
 export async function GET(request: NextRequest) {
   try {
-    const ctx = await getTenantSupabaseFromAuth(request);
+    const ctx = await getTenantSupabaseFromAuthWithRol(request);
     if (!ctx) return NextResponse.json(errorResponse(API_ERRORS.UNAUTHORIZED), { status: 401 });
+    if (esTesoreroRol(ctx.auth.rol)) {
+      return NextResponse.json(errorResponse("No tenés permiso para exportar el reporte general."), { status: 403 });
+    }
 
     const url = new URL(request.url);
     const tipo = url.searchParams.get("tipo") === "gastos" ? "gastos" : "ingresos";
