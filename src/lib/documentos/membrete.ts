@@ -13,8 +13,10 @@
 export const EMPRESA_DOC = {
   nombre: "IGLESIA ADVENTISTA DE LA PROMESA",
   actividad: [
-    "Comercio al por menor de artículos de ferretería, materiales de construcción y herramientas",
+    "Entidad religiosa sin fines de lucro",
   ],
+  ruc: "80028776-2",
+  personeria: "74/74",
   telefono: "",
   direccion: ["Paraguay"],
   /** Logo del cliente (alta calidad, sin fondo). Servido desde /public. */
@@ -44,7 +46,8 @@ export function membreteA4(origin = ""): string {
     <div style="flex:1;min-width:0;text-align:right;font-size:11px;color:#374151;line-height:1.55;">
       <div style="font-size:14px;font-weight:800;color:#1f2937;">${esc(e.nombre)}</div>
       ${e.actividad.map((a) => `<div style="color:#6b7280;">${esc(a)}</div>`).join("")}
-      <div style="margin-top:4px;"><strong>Tel:</strong> ${esc(e.telefono)}</div>
+      <div style="margin-top:4px;"><strong>RUC:</strong> ${esc(e.ruc)} · <strong>Personería Jurídica:</strong> ${esc(e.personeria)}</div>
+      ${e.telefono ? `<div><strong>Tel:</strong> ${esc(e.telefono)}</div>` : ""}
       <div>${e.direccion.map(esc).join(" · ")}</div>
     </div>
   </div>`;
@@ -60,7 +63,8 @@ export function membreteTicket(origin = ""): string {
   <div style="text-align:center;padding-bottom:6px;margin-bottom:6px;border-bottom:1px dashed #000;">
     <img src="${esc(logo)}" alt="${esc(e.nombre)}" style="max-width:150px;max-height:72px;width:auto;height:auto;object-fit:contain;display:inline-block;margin:0 auto 4px;" />
     <div style="font-weight:700;font-size:12px;">${esc(e.nombre)}</div>
-    <div style="font-size:10px;">Tel: ${esc(e.telefono)}</div>
+    <div style="font-size:10px;">RUC: ${esc(e.ruc)} · Pers. Jur.: ${esc(e.personeria)}</div>
+    ${e.telefono ? `<div style="font-size:10px;">Tel: ${esc(e.telefono)}</div>` : ""}
     <div style="font-size:10px;">${esc(e.direccion[0])}</div>
     <div style="font-size:10px;">${esc(e.direccion.slice(1).join(" · "))}</div>
   </div>`;
