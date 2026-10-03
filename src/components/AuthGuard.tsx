@@ -149,8 +149,8 @@ function AuthGuardInner({ children }: { children: React.ReactNode }) {
       setBlockedSlug(null);
       return;
     }
-    // Reporte general: solo administradores.
-    if ((pathname === "/reportes" || pathname.startsWith("/reportes/")) && !esAdmin) {
+    // Reporte de aportes de iglesia: solo administradores. El /reportes existente mantiene sus permisos históricos.
+    if ((pathname === "/reportes/aportes" || pathname.startsWith("/reportes/aportes/")) && !esAdmin) {
       router.replace(
         firstAccessibleHref(access.slugs, {
           superAdmin: false,
