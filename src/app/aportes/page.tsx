@@ -43,6 +43,14 @@ function hoy() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function tipoAporteCanonico(nombre: string): "DIEZMO" | "OFRENDA" | "VOTO" | null {
+  const n = nombre.trim().toUpperCase();
+  if (n === "DIEZMO") return "DIEZMO";
+  if (n === "OFRENDA") return "OFRENDA";
+  if (n === "VOTO" || n === "VOTOS") return "VOTO";
+  return null;
+}
+
 export default function AportesPage() {
   const [filiales, setFiliales] = useState<Filial[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -96,7 +104,9 @@ export default function AportesPage() {
   );
 
   const categoriaOpts = useMemo(
-    () => [{ value: "", label: "Seleccioná el tipo de aporte" }, ...categorias.map((c) => ({ value: c.id, label: c.nombre }))],
+    () => [{ value: "", label: "Seleccioná el tipo de aporte" }, ...categorias
+      .filter((c) => tipoAporteCanonico(c.nombre) !== null)
+      .map((c) => ({ value: c.id, label: tipoAporteCanonico(c.nombre)! }))],
     [categorias]
   );
 
@@ -177,10 +187,16 @@ export default function AportesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#4FAEB2]">Iglesia · Tesorería</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#4FAEB2]">Iglesia · Tesorería</p>
         <h1 className="mt-1 text-lg font-semibold tracking-tight text-slate-900">Aportes</h1>
         <p className="mt-0.5 text-xs text-slate-500">Registro e historial de diezmos, ofrendas y votos.</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-right text-[11px] leading-5 text-slate-600 shadow-sm">
+          <div className="font-semibold text-slate-900">Iglesia Adventista De La Promesa</div>
+          <div>RUC: 80028776-2 · Personería Jurídica: 74/74</div>
+        </div>
       </div>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm ring-1 ring-[#4FAEB2]/10">
