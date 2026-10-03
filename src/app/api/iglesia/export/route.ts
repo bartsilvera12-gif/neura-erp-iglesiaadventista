@@ -130,6 +130,8 @@ export async function GET(request: NextRequest) {
     const filial = url.searchParams.get("filial");
     const categoria = url.searchParams.get("categoria");
     const sector = url.searchParams.get("sector");
+    const aportante = tipo === "ingresos" ? url.searchParams.get("aportante") : null;
+    const factura = tipo === "ingresos" ? url.searchParams.get("factura") : null;
 
     const tabla = tipo === "gastos" ? "gastos" : "ingresos";
     const catFk = tipo === "gastos" ? "categoria_gasto_id" : "categoria_id";
@@ -139,7 +141,7 @@ export async function GET(request: NextRequest) {
       ? `id, fecha, monto, descripcion, forma_pago, numero_factura,
          filial:filiales!inner(id, nombre, es_junta, aplica_15_porciento, sector:sectores(id, nombre)),
          categoria:${catTable}(id, nombre),
-         aportante:aportantes(id, nombre)`
+         aportante:aportantes(id, nombre, cedula)`
       : `id, fecha, monto, descripcion, forma_pago, numero_factura,
          filial:filiales!inner(id, nombre, es_junta, aplica_15_porciento, sector:sectores(id, nombre)),
          categoria:${catTable}(id, nombre)`;
@@ -151,6 +153,8 @@ export async function GET(request: NextRequest) {
     if (filial) q = q.eq("filial_id", filial);
     if (categoria) q = q.eq(catFk, categoria);
     if (sector) q = q.eq("filial.sector_id", sector);
+    if (aportante) q = q.eq("aportante_id", aportante);
+    if (factura) q = q.ilike("numero_factura", `%${factura}%`);
 
     const { data, error } = await q;
     if (error) return NextResponse.json(errorResponse(error.message), { status: 400 });
