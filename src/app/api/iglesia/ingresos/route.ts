@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTenantSupabaseFromAuth, getTenantSupabaseFromAuthWithRol } from "@/lib/supabase/tenant-api";
 import { esTesoreroRol } from "@/lib/iglesia/roles-server";
+import { esRolAdminEmpresaOGlobal } from "@/lib/auth/rol-empresa";
 import { successResponse, errorResponse } from "@/lib/api/response";
 import { API_ERRORS } from "@/lib/api/errors";
 
@@ -28,6 +29,9 @@ export async function GET(request: NextRequest) {
     const aportante = url.searchParams.get("aportante");
     const factura = url.searchParams.get("factura");
     const soloAportes = url.searchParams.get("solo_aportes") === "1";
+    if (soloAportes && !esRolAdminEmpresaOGlobal(ctx.auth.rol)) {
+      return NextResponse.json(errorResponse("Solo un administrador puede consultar el reporte consolidado de aportes."), { status: 403 });
+    }
 
     let q = ctx.supabase
       .from("ingresos")
