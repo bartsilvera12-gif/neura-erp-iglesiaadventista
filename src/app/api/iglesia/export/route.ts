@@ -448,7 +448,7 @@ async function buildExcel(tipo: "ingresos" | "gastos", rows: Movimiento[], f: { 
       data.map((d) => ({ label: toStdNombre(d.key), value: d.total })),
       { colorHex: accentHex, width: 400 }
     );
-    const imgId = wb.addImage({ buffer: png, extension: "png" });
+    const imgId = wb.addImage({ buffer: png, extension: "png" } as unknown as Parameters<typeof wb.addImage>[0]);
     const chartHeight = Math.min(240, data.length * 20 + 8);
     wsSum.addImage(imgId, {
       tl: { col: 4, row: dataStartRow - 1 } as any,
@@ -473,7 +473,7 @@ async function buildExcel(tipo: "ingresos" | "gastos", rows: Movimiento[], f: { 
   await putSection("TOTAL POR SECTOR", porSector);
   await putSection("TOTAL POR FORMA DE PAGO", porFormaPago);
 
-  return await wb.xlsx.writeBuffer() as Buffer;
+  return (await wb.xlsx.writeBuffer()) as unknown as Buffer;
 }
 
 // ============================================================================
