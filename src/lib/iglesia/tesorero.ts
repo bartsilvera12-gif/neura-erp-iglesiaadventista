@@ -6,6 +6,21 @@ export function esTesorero(rol: string | null | undefined): boolean {
   return (rol ?? "").trim().toLowerCase() === ROL_TESORERO;
 }
 
+/**
+ * Lee el rol del usuario desde el servidor para no depender de RLS del navegador.
+ */
+export async function fetchRolActual(): Promise<string | null> {
+  try {
+    const r = await fetch("/api/usuarios/me", { cache: "no-store", credentials: "include" });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const rol = j?.usuario?.rol;
+    return typeof rol === "string" && rol.trim() ? rol.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
 export type TesoreroFilial = { id: string; nombre: string };
 
 const KEY = "tesorero_filial";
