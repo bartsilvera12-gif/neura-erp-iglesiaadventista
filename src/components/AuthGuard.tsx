@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import ZentraLoader from "@/components/ZentraLoader";
 import { BootProvider, useBoot } from "@/components/BootContext";
-import { getCurrentUser, getSession } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 import { getModuleAccessCached } from "@/lib/modulos/module-access-cache";
 import { isBootstrapSuperAdminEmail } from "@/lib/auth/super-admin-bootstrap-email";
 import {
@@ -13,7 +13,7 @@ import {
   isModuleSlugGranted,
   pathRequiresModuleSlug,
 } from "@/lib/modulos/route-slug-map";
-import { esTesorero } from "@/lib/iglesia/tesorero";
+import { esTesorero, fetchRolActual } from "@/lib/iglesia/tesorero";
 import { esRolAdminEmpresaOGlobal } from "@/lib/auth/rol-empresa";
 
 const PUBLIC_ROUTES = ["/login"];
@@ -92,15 +92,9 @@ function AuthGuardInner({ children }: { children: React.ReactNode }) {
         superAdmin = bootstrapSuper;
       }
 
-      // Resolvemos el rol del usuario (para el gating del tesorero y del reporte).
-      let rol: string | null = null;
-      try {
-        const cu = await getCurrentUser();
-        rol = cu?.rol ?? null;
-        if ((rol ?? "").trim() === "super_admin") superAdmin = true;
-      } catch {
-        /* sin fila usuarios en cliente */
-      }
+      // Resolvemos el rol desde el servidor para no depender de RLS del navegador.
+      const rol = await fetchRolActual();
+      if ((rol ?? "").trim() === "super_admin") superAdmin = true;
 
       setAccess({
         superAdmin,
