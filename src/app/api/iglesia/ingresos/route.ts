@@ -102,6 +102,18 @@ export async function POST(request: NextRequest) {
       if (ap.filial_id && ap.filial_id !== filial_id) {
         return NextResponse.json(errorResponse("El aportante no pertenece a la filial seleccionada."), { status: 400 });
       }
+
+      const { data: cat, error: catErr } = await ctx.supabase
+        .from("categorias_ingreso")
+        .select("nombre")
+        .eq("id", categoria_id)
+        .eq("empresa_id", ctx.auth.empresa_id)
+        .maybeSingle();
+      if (catErr) return NextResponse.json(errorResponse(catErr.message), { status: 400 });
+      const nombreTipo = String(cat?.nombre ?? "").trim().toUpperCase();
+      if (!["DIEZMO", "OFRENDA", "VOTO", "VOTOS"].includes(nombreTipo)) {
+        return NextResponse.json(errorResponse("El tipo de aporte debe ser Diezmo, Ofrenda o Voto."), { status: 400 });
+      }
     }
 
     const { data, error } = await ctx.supabase
