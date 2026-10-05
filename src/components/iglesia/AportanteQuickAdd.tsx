@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { fetchWithSupabaseSession } from "@/lib/api/fetch-with-supabase-session";
-import { getCurrentUser } from "@/lib/auth";
-import { esRolAdminEmpresaOGlobal } from "@/lib/auth/rol-empresa";
 
 type Aportante = { id: string; nombre: string; telefono?: string | null; observaciones?: string | null };
 
@@ -23,8 +21,9 @@ export function AportanteQuickAdd({ onCreated }: { onCreated: (a: Aportante) => 
   useEffect(() => {
     (async () => {
       try {
-        const u = await getCurrentUser();
-        setEsAdmin(esRolAdminEmpresaOGlobal(u?.rol));
+        const r = await fetchWithSupabaseSession("/api/iglesia/aportantes/permisos", { cache: "no-store" });
+        const j = await r.json();
+        setEsAdmin(Boolean(j?.success && j.data?.esAdmin));
       } catch {
         setEsAdmin(false);
       }
