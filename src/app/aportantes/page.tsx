@@ -6,8 +6,6 @@ import { FancySelect } from "@/components/ui/FancySelect";
 import { buildFilialOptions, type FilialLite } from "@/lib/iglesia/build-filial-options";
 import { MESES_LARGO, aniosDisponibles } from "@/lib/iglesia/mes-anio";
 import NominaImportModal from "@/components/iglesia/NominaImportModal";
-import { getCurrentUser } from "@/lib/auth";
-import { esRolAdminEmpresaOGlobal } from "@/lib/auth/rol-empresa";
 
 type Aportante = {
   id: string;
@@ -51,8 +49,9 @@ export default function AportantesPage() {
   useEffect(() => {
     (async () => {
       try {
-        const u = await getCurrentUser();
-        setEsAdmin(esRolAdminEmpresaOGlobal(u?.rol));
+        const r = await fetchWithSupabaseSession("/api/iglesia/aportantes/permisos", { cache: "no-store" });
+        const j = await r.json();
+        setEsAdmin(Boolean(j?.success && j.data?.esAdmin));
       } catch {
         setEsAdmin(false);
       }
