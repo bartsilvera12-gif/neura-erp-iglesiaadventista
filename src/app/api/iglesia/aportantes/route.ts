@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getTenantSupabaseFromAuth } from "@/lib/supabase/tenant-api";
+import { getTenantSupabaseFromAuth, getTenantSupabaseFromAuthWithRol } from "@/lib/supabase/tenant-api";
+import { esRolAdminEmpresaOGlobal } from "@/lib/auth/rol-empresa";
 import { successResponse, errorResponse } from "@/lib/api/response";
 import { API_ERRORS } from "@/lib/api/errors";
 import { toStdNombre } from "@/lib/iglesia/normalize";
@@ -35,8 +36,11 @@ export async function GET(request: NextRequest) {
 /** POST /api/iglesia/aportantes — { nombre, cedula?, filial_id?, telefono?, observaciones? } */
 export async function POST(request: NextRequest) {
   try {
-    const ctx = await getTenantSupabaseFromAuth(request);
+    const ctx = await getTenantSupabaseFromAuthWithRol(request);
     if (!ctx) return NextResponse.json(errorResponse(API_ERRORS.UNAUTHORIZED), { status: 401 });
+    if (!esRolAdminEmpresaOGlobal(ctx.auth.rol)) {
+      return NextResponse.json(errorResponse("Solo un administrador puede crear aportantes."), { status: 403 });
+    }
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
     const nombre = typeof body.nombre === "string" ? toStdNombre(body.nombre) : "";
     const cedula = normalizarCedula(body.cedula);

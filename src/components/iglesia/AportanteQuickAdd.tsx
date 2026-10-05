@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { fetchWithSupabaseSession } from "@/lib/api/fetch-with-supabase-session";
+import { getCurrentUser } from "@/lib/auth";
+import { esRolAdminEmpresaOGlobal } from "@/lib/auth/rol-empresa";
 
 type Aportante = { id: string; nombre: string; telefono?: string | null; observaciones?: string | null };
 
@@ -11,11 +13,23 @@ type Aportante = { id: string; nombre: string; telefono?: string | null; observa
  */
 export function AportanteQuickAdd({ onCreated }: { onCreated: (a: Aportante) => void }) {
   const [open, setOpen] = useState(false);
+  const [esAdmin, setEsAdmin] = useState(false);
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
   const [observaciones, setObservaciones] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const u = await getCurrentUser();
+        setEsAdmin(esRolAdminEmpresaOGlobal(u?.rol));
+      } catch {
+        setEsAdmin(false);
+      }
+    })();
+  }, []);
 
   function close() {
     setOpen(false);
@@ -45,6 +59,8 @@ export function AportanteQuickAdd({ onCreated }: { onCreated: (a: Aportante) => 
   function onKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter") { e.preventDefault(); guardar(); }
   }
+
+  if (!esAdmin) return null;
 
   return (
     <>
